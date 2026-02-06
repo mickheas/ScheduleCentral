@@ -1,0 +1,63 @@
+@* @using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+<ul class="navbar-nav">
+@if (SignInManager.IsSignedIn(User))
+{
+    var user = await UserManager.GetUserAsync(User);
+    <li class="nav-item">
+
+        <a id="manage" class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage" rel="external">Hello @(user?.FirstName ?? user?.UserName)!</a>
+    </li>
+    <li class="nav-item">
+        <form id="logoutForm" class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
+            <button id="logout" type="submit" class="nav-link btn btn-link text-dark border-0">Logout</button>
+        </form>
+    </li>
+}
+else
+{
+    <li class="nav-item">
+
+        <a class="nav-link text-dark" id="register" asp-controller="Account" asp-action="RegisterInstructor">Register as Instructor</a>
+    </li>
+    <li class="nav-item">
+       
+        <a class="nav-link text-dark" id="login" asp-area="Identity" asp-page="/Account/Login" rel="external">Login</>
+    </li>
+}
+</ul> *@
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+<ul class="navbar-nav">
+@if (SignInManager.IsSignedIn(User))
+{
+    var user = await UserManager.GetUserAsync(User);
+    <li class="nav-item">
+        
+        <a id="manage" class="nav-link text-dark" href="@Url.Page("/Account/Manage/Index", new { area = "Identity" })" title="Manage" rel="external">Hello @(user?.FirstName ?? user?.UserName)!</a>
+    </li>
+    <li class="nav-item">
+        <form id="logoutForm" class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
+            <button id="logout" type="submit" class="nav-link btn btn-link text-dark border-0">Logout</button>
+        </form>
+    </li>
+}
+else
+{
+    <li class="nav-item">
+        <a class="nav-link text-dark" id="register" href="/Account/RegisterInstructor">
+            <i class="bi bi-person-plus me-1"></i> Register
+        </a>
+    </li>
+    <li class="nav-item">
+        @* CRITICAL FIX: Direct URL generation with Url.Page() and rel="external" *@
+        <a class="nav-link text-dark" id="login" href="@Url.Page("/Account/Login", new { area = "Identity" })" rel="external">
+            <i class="bi bi-box-arrow-in-right me-1"></i> Login
+        </a>
+    </li>
+}
+</ul>

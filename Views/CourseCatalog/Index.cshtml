@@ -1,0 +1,319 @@
+@* @model IEnumerable<ScheduleCentral.Models.Course>
+@{
+    ViewData["Title"] = "Course Catalog";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var currentDepartment = (ViewBag.DepartmentName as string) ?? string.Empty;
+}
+
+<h2 class="h4 mb-3">Course Catalog — @ViewBag.DepartmentName</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+<div class="mb-3 text-end">
+    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createCourseModal">
+        <i class="bi bi-plus-lg"></i> Add Course
+    </button>
+</div>
+
+<table class="table table-hover align-middle">
+    <thead>
+        <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Credits</th>
+            <th>Lec/Lab</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var c in Model)
+    {
+        <tr>
+            <td>@c.Code</td>
+            <td>@c.Name</td>
+            <td>@c.CreditHours</td>
+            <td>@c.LectureHours / @c.LabHours</td>
+            <td class="text-end">
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#editCourseModal"
+                        data-id="@c.Id"
+                        data-code="@c.Code"
+                        data-name="@c.Name"
+                        data-credits="@c.CreditHours"
+                        data-lecture="@c.LectureHours"
+                        data-lab="@c.LabHours">
+                    <i class="bi bi-pencil"></i>
+                </button>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+<div class="modal fade" id="createCourseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Course</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="Create" method="post">
+                <div class="modal-body">
+                    <div class="row g-2 mb-2">
+                        <div class="col">
+                            <label class="form-label">Code</label>
+                            <input name="Code" class="form-control" required />
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Credits</label>
+                            <input name="CreditHours" type="number" class="form-control" required />
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Name</label>
+                        <input name="Name" class="form-control" required />
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col">
+                            <label class="form-label">Lecture Hours</label>
+                            <input name="LectureHours" type="number" class="form-control" value="0" required />
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Lab Hours</label>
+                            <input name="LabHours" type="number" class="form-control" value="0" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editCourseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Course</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="Edit" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="editCourseId" />
+                    <div class="row g-2 mb-2">
+                        <div class="col">
+                            <label class="form-label">Code</label>
+                            <input name="Code" id="editCourseCode" class="form-control" required />
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Credits</label>
+                            <input name="CreditHours" id="editCourseCredits" type="number" class="form-control" required />
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Name</label>
+                        <input name="Name" id="editCourseName" class="form-control" required />
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col">
+                            <label class="form-label">Lecture Hours</label>
+                            <input name="LectureHours" id="editCourseLecture" type="number" class="form-control" required />
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Lab Hours</label>
+                            <input name="LabHours" id="editCourseLab" type="number" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const editCourseModal = document.getElementById('editCourseModal');
+        if (editCourseModal) {
+            editCourseModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                if (!button) return;
+
+                document.getElementById('editCourseId').value = button.getAttribute('data-id');
+                document.getElementById('editCourseCode').value = button.getAttribute('data-code');
+                document.getElementById('editCourseName').value = button.getAttribute('data-name');
+                document.getElementById('editCourseCredits').value = button.getAttribute('data-credits');
+                document.getElementById('editCourseLecture').value = button.getAttribute('data-lecture');
+                document.getElementById('editCourseLab').value = button.getAttribute('data-lab');
+            });
+        }
+    </script>
+} *@
+@model IEnumerable<ScheduleCentral.Models.Course>
+@{
+    ViewData["Title"] = "Course Catalog";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var currentDepartment = (ViewBag.DepartmentName as string) ?? string.Empty;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="h4 mb-0 fw-bold text-dark">Course Catalog <span class="text-muted fw-normal">| @ViewBag.DepartmentName</span></h2>
+    <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#createCourseModal">
+        <i class="bi bi-plus-lg me-1"></i> Add Course
+    </button>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light text-muted small uppercase">
+                <tr>
+                    <th class="ps-4">Code</th>
+                    <th>Course Name</th>
+                    <th>Credits</th>
+                    <th>Contact Hours</th>
+                    <th class="text-end pe-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var c in Model)
+            {
+                <tr>
+                    <td class="ps-4"><span class="badge bg-light text-dark border fw-medium">@c.Code</span></td>
+                    <td class="fw-semibold">@c.Name</td>
+                    <td>@c.CreditHours <small class="text-muted">units</small></td>
+                    <td>@c.ContactHours</td>
+                    <td class="text-end pe-4">
+                        @if (string.Equals((c.Department ?? string.Empty).Trim(), currentDepartment.Trim(), StringComparison.OrdinalIgnoreCase))
+                        {
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-primary"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editCourseModal"
+                                    data-id="@c.Id"
+                                    data-code="@c.Code"
+                                    data-name="@c.Name"
+                                    data-credits="@c.CreditHours"
+                                    data-lecture="@c.LectureHours">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@* Modals (Place at bottom for better rendering) *@
+<div class="modal fade" id="createCourseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold">Add New Course</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="Create" method="post">
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Course Code</label>
+                            <input name="Code" class="form-control" placeholder="e.g. CS101" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Credit Units</label>
+                            <input name="CreditHours" type="number" class="form-control" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Course Name</label>
+                            <input name="Name" class="form-control" placeholder="Full Descriptive Title" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Contact Hours</label>
+                            <input name="LectureHours" type="number" class="form-control" value="0" required />
+                            <input name="LabHours" type="hidden" value="0" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-link text-muted text-decoration-none" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4">Save Course</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editCourseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold">Edit Course</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="Edit" method="post">
+                <div class="modal-body p-4">
+                    <input type="hidden" name="id" id="editCourseId" />
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Course Code</label>
+                            <input name="Code" id="editCourseCode" class="form-control" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Credit Units</label>
+                            <input name="CreditHours" id="editCourseCredits" type="number" class="form-control" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Course Name</label>
+                            <input name="Name" id="editCourseName" class="form-control" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Contact Hours</label>
+                            <input name="LectureHours" id="editCourseLecture" type="number" class="form-control" required />
+                            <input name="LabHours" id="editCourseLab" type="hidden" value="0" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-link text-muted text-decoration-none" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4">Update Details</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const editModal = document.getElementById('editCourseModal');
+            if (editModal) {
+                editModal.addEventListener('show.bs.modal', function (event) {
+                    const btn = event.relatedTarget;
+                    document.getElementById('editCourseId').value = btn.getAttribute('data-id');
+                    document.getElementById('editCourseCode').value = btn.getAttribute('data-code');
+                    document.getElementById('editCourseName').value = btn.getAttribute('data-name');
+                    document.getElementById('editCourseCredits').value = btn.getAttribute('data-credits');
+                    document.getElementById('editCourseLecture').value = btn.getAttribute('data-lecture');
+                    document.getElementById('editCourseLab').value = 0;
+                });
+            }
+        });
+    </script>
+}

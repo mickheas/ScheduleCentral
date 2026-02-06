@@ -1,0 +1,63 @@
+@model ScheduleCentral.Models.ViewModels.CreateSectionsViewModel
+
+<div class="modal-header">
+    <h5 class="modal-title">Create Sections — @Model.Department (@Model.AcademicYear, Semester @Model.Semester)</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<div class="modal-body">
+    <form asp-action="CreateSections" asp-controller="ProgramOfficer" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="OfferingId" value="@Model.OfferingId" />
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Year</th>
+                        <th>Batch</th>
+                        <th>Semester</th>
+                        <th>Type</th>
+                        <th class="text-end"># Sections</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @for (var i = 0; i < Model.Batches.Count; i++)
+                {
+                    <tr>
+                        <td class="fw-semibold">
+                            @Model.Batches[i].YearLevel
+                            <input type="hidden" name="Batches[@i].OfferingBatchId" value="@Model.Batches[i].OfferingBatchId" />
+                            <input type="hidden" name="Batches[@i].YearLevel" value="@Model.Batches[i].YearLevel" />
+                        </td>
+                        <td>
+                            @Model.Batches[i].BatchName
+                            <input type="hidden" name="Batches[@i].BatchName" value="@Model.Batches[i].BatchName" />
+                        </td>
+                        <td>
+                            @Model.Batches[i].Semester
+                            <input type="hidden" name="Batches[@i].Semester" value="@Model.Batches[i].Semester" />
+                        </td>
+                        <td>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="Batches[@i].IsExtension" value="true" @(Model.Batches[i].IsExtension ? "checked" : "") />
+                                <label class="form-check-label">Extension</label>
+                            </div>
+                        </td>
+                        <td class="text-end" style="max-width:160px;">
+                            <input class="form-control" type="number" min="1" max="20" name="Batches[@i].SectionCount" value="@Model.Batches[i].SectionCount" />
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="modal-footer px-0 pb-0">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-play-fill me-1"></i> Generate
+            </button>
+        </div>
+    </form>
+</div>

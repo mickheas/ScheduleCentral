@@ -1,0 +1,155 @@
+@model ScheduleCentral.Controllers.SwapRequestCreateViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Request Swap";
+
+    var clrIndigo = "#4f46e5";
+    var clrCyan = "#06b6d4";
+    var lightBg = "#f8fafc";
+}
+
+@functions {
+    string DayLabel(int dayOfWeek)
+    {
+        return dayOfWeek switch
+        {
+            1 => "Monday",
+            2 => "Tuesday",
+            3 => "Wednesday",
+            4 => "Thursday",
+            5 => "Friday",
+            6 => "Saturday",
+            7 => "Sunday",
+            _ => $"Day {dayOfWeek}"
+        };
+    }
+
+    string SlotTimeRange(int slot)
+    {
+        return slot switch
+        {
+            1 => "08:30 – 09:20",
+            2 => "09:30 – 10:20",
+            3 => "10:30 – 11:20",
+            4 => "11:30 – 12:20",
+            5 => "13:30 – 14:20",
+            6 => "14:30 – 15:20",
+            7 => "15:30 – 16:20",
+            8 => "16:30 – 17:20",
+            9 => "18:30 – 19:20",
+            10 => "19:30 – 20:20",
+            _ => ""
+        };
+    }
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="mb-4">
+        <h1 class="h4 mb-1 fw-bold" style="color:@clrIndigo;">Request Schedule Swap</h1>
+        <div class="text-muted small">Meeting: @Model.Course</div>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden" style="border-top: 4px solid @clrCyan;">
+        <div class="card-body p-4">
+            <form asp-controller="SwapRequest" asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="MeetingId" />
+
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label small text-uppercase text-muted fw-bold">Mode</label>
+                        <div class="row g-3">
+                            <div class="col-lg-6">
+                                <div class="border rounded-3 p-3" style="background-color:@lightBg;">
+                                    <div class="form-check mb-1">
+                                        <input class="form-check-input" type="radio" name="Mode" id="modeMove" value="MoveToEmptySlot" @(Model.Mode == ScheduleCentral.Models.ScheduleSwapRequestMode.MoveToEmptySlot ? "checked" : "") />
+                                        <label class="form-check-label fw-bold" for="modeMove">Mode B: Move to an empty slot</label>
+                                    </div>
+                                    <div class="text-muted small">Program Officer reviews and approves/rejects. No peer instructor approval required.</div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="border rounded-3 p-3" style="background-color:@lightBg;">
+                                    <div class="form-check mb-1">
+                                        <input class="form-check-input" type="radio" name="Mode" id="modeSwap" value="SwapWithInstructor" @(Model.Mode == ScheduleCentral.Models.ScheduleSwapRequestMode.SwapWithInstructor ? "checked" : "") />
+                                        <label class="form-check-label fw-bold" for="modeSwap">Mode A: Swap with another instructor</label>
+                                    </div>
+                                    <div class="text-muted small">Program Officer forwards to the peer instructor, peer agrees/disagrees, then Program Officer gives final approval.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small text-uppercase text-muted fw-bold">Target Day</label>
+                        <select class="form-select" asp-for="TargetDayOfWeek" id="targetDay">
+                            <option value="1">Monday</option>
+                            <option value="2">Tuesday</option>
+                            <option value="3">Wednesday</option>
+                            <option value="4">Thursday</option>
+                            <option value="5">Friday</option>
+                            <option value="6">Saturday</option>
+                            <option value="7">Sunday</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-uppercase text-muted fw-bold">Target Slot (Number + Hour)</label>
+                        <select class="form-select" asp-for="TargetSlotStart" id="targetSlot">
+                            <option value="1">Slot 1 (08:30 – 09:20)</option>
+                            <option value="2">Slot 2 (09:30 – 10:20)</option>
+                            <option value="3">Slot 3 (10:30 – 11:20)</option>
+                            <option value="4">Slot 4 (11:30 – 12:20)</option>
+                            <option value="5">Slot 5 (13:30 – 14:20)</option>
+                            <option value="6">Slot 6 (14:30 – 15:20)</option>
+                            <option value="7">Slot 7 (15:30 – 16:20)</option>
+                            <option value="8">Slot 8 (16:30 – 17:20)</option>
+                            <option value="9">Slot 9 (18:30 – 19:20)</option>
+                            <option value="10">Slot 10 (19:30 – 20:20)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12" id="peerMeetingWrap" style="display:none;">
+                        <label class="form-label small text-uppercase text-muted fw-bold">Swap With (Instructor / Course / Day / Slot)</label>
+                        <select class="form-select" asp-for="PeerMeetingId" asp-items="ViewBag.PeerMeetings">
+                            <option value="">-- Select meeting --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-3 text-muted small">
+                    Current: @DayLabel(Model.CurrentDayOfWeek) · Slot @Model.CurrentSlotStart (@SlotTimeRange(Model.CurrentSlotStart)) · Length @Model.SlotLength
+                </div>
+
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn fw-bold text-white" style="background-color:@clrIndigo;">
+                        <i class="bi bi-send me-2"></i> Submit Request
+                    </button>
+                    <a class="btn btn-outline-secondary fw-bold" asp-controller="Instructor" asp-action="MySchedule">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const modeMove = document.getElementById('modeMove');
+            const modeSwap = document.getElementById('modeSwap');
+            const peerWrap = document.getElementById('peerMeetingWrap');
+            const dayEl = document.getElementById('targetDay');
+            const slotEl = document.getElementById('targetSlot');
+
+            function sync() {
+                const isSwap = modeSwap && modeSwap.checked;
+                if (peerWrap) peerWrap.style.display = isSwap ? '' : 'none';
+                if (dayEl) dayEl.disabled = isSwap;
+                if (slotEl) slotEl.disabled = isSwap;
+            }
+
+            if (modeMove) modeMove.addEventListener('change', sync);
+            if (modeSwap) modeSwap.addEventListener('change', sync);
+            sync();
+        })();
+    </script>
+}

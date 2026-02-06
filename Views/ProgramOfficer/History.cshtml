@@ -1,0 +1,231 @@
+@* @model ScheduleCentral.Models.ViewModels.ProgramOfficerApprovedHistoryViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Approved Offering History";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-0">Approved Offering History</h1>
+        <div class="text-muted small">View approved offerings and generate sections.</div>
+    </div>
+</div>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-3">
+        <label class="form-label">Academic Year</label>
+        <input class="form-control" name="academicYear" value="@Model.AcademicYear" placeholder="2025/2026" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Semester</label>
+        <input class="form-control" name="semester" value="@Model.Semester" placeholder="I / II / Summer" />
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Department</label>
+        <input class="form-control" name="department" value="@Model.Department" placeholder="Computer Science" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Year Level</label>
+        <input class="form-control" name="yearLevel" value="@(Model.YearLevel?.ToString() ?? "")" placeholder="4" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Batch Name</label>
+        <input class="form-control" name="batchName" value="@Model.BatchName" placeholder="Batch II" />
+    </div>
+    <div class="col-12 d-flex justify-content-end">
+        <button type="submit" class="btn btn-primary">Search</button>
+    </div>
+</form>
+
+<div class="card shadow-sm border-0 rounded-3">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+    <thead class="table-light">
+        <tr>
+            <th>Department</th>
+            <th>Academic Year</th>
+            <th>Semester</th>
+            <th>Batches</th>
+            <th class="text-end pe-4">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    @if (Model.Offerings == null || !Model.Offerings.Any())
+    {
+        <tr>
+            <td colspan="5" class="text-center text-muted">No approved offerings found.</td>
+        </tr>
+    }
+    else
+    {
+        @foreach (var o in Model.Offerings)
+        {
+            <tr>
+                <td>@o.Department</td>
+                <td>@o.AcademicYear</td>
+                <td>@o.Semester</td>
+                <td>@o.BatchCount</td>
+                <td class="text-end pe-4">
+                    <a class="btn btn-outline-primary btn-sm" asp-controller="ProgramOfficer" asp-action="Review" asp-route-offeringId="@o.OfferingId" title="View">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                    <a class="btn btn-outline-secondary btn-sm" asp-controller="ProgramOfficer" asp-action="Sections" asp-route-offeringId="@o.OfferingId" title="Sections">
+                        <i class="bi bi-list-ul"></i>
+                    </a>
+
+                    <form asp-controller="ProgramOfficer"
+                          asp-action="DeleteApprovedOffering"
+                          method="post"
+                          class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="offeringId" value="@o.OfferingId" />
+                        <button type="submit"
+                                class="btn btn-outline-danger btn-sm"
+                                title="Delete Approved Offering"
+                                onclick="return confirm('Delete this approved offering? This will also delete generated sections, schedule grids, meetings, and assignments for this offering.');">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        }
+    }
+    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+} *@
+@model ScheduleCentral.Models.ViewModels.ProgramOfficerApprovedHistoryViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Approved Offering History";
+
+    // Palette Colors
+    var clrIndigo = "#4f46e5";
+    var clrEmerald = "#10b981";
+    var clrCyan = "#06b6d4";
+    var clrAmber = "#f59e0b";
+    var lightBg = "#f8fafc";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="mb-4">
+        <h1 class="h4 mb-1 fw-bold" style="color: @clrIndigo;">Approved Offering History</h1>
+        <p class="text-muted small">Search historical records, manage section generations, and audit schedules.</p>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+        <div class="card-header bg-white py-3 border-0">
+            <h6 class="mb-0 fw-bold text-uppercase small" style="color: @clrCyan; letter-spacing: 1px;">
+                <i class="bi bi-filter-left me-2"></i>Filter Records
+            </h6>
+        </div>
+        <div class="card-body bg-light border-top">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Academic Year</label>
+                    <input class="form-control form-control-sm border-0 shadow-sm" name="academicYear" value="@Model.AcademicYear" placeholder="e.g., 2025/2026" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">Semester</label>
+                    <input class="form-control form-control-sm border-0 shadow-sm" name="semester" value="@Model.Semester" placeholder="I / II" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Department</label>
+                    <input class="form-control form-control-sm border-0 shadow-sm" name="department" value="@Model.Department" placeholder="Computer Science" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">Year Level</label>
+                    <input class="form-control form-control-sm border-0 shadow-sm" name="yearLevel" value="@(Model.YearLevel?.ToString() ?? "")" placeholder="4" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">Batch Name</label>
+                    <input class="form-control form-control-sm border-0 shadow-sm" name="batchName" value="@Model.BatchName" placeholder="Batch II" />
+                </div>
+                <div class="col-12 d-flex justify-content-end gap-2 mt-3">
+                    <a asp-controller="ProgramOfficer" asp-action="History" class="btn btn-sm btn-outline-secondary px-3">Reset</a>
+                    <button type="submit" class="btn btn-sm text-white px-4 fw-bold" style="background-color: @clrIndigo;">
+                        <i class="bi bi-search me-1"></i> Apply Filters
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden" style="border-top: 4px solid @clrEmerald !important;">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead style="background-color: @lightBg;">
+                        <tr>
+                            <th class="ps-4 py-3 small text-uppercase text-muted fw-bold">Department & Year</th>
+                            <th class="py-3 small text-uppercase text-muted fw-bold">Semester</th>
+                            <th class="py-3 small text-uppercase text-muted fw-bold text-center">Active Batches</th>
+                            <th class="text-end pe-4 py-3 small text-uppercase text-muted fw-bold">Management</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.Offerings == null || !Model.Offerings.Any())
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center py-5">
+                                <i class="bi bi-inbox text-muted d-block mb-2" style="font-size: 2rem;"></i>
+                                <span class="text-muted">No approved offerings match your criteria.</span>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var o in Model.Offerings)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-bold" style="color: @clrIndigo;">@o.Department</div>
+                                    <div class="text-muted small">AY @o.AcademicYear</div>
+                                </td>
+                                <td>
+                                    <span class="badge rounded-pill px-3 py-2 fw-medium" 
+                                          style="background-color: #ecfeff; color: @clrCyan; border: 1px solid #cffafe;">
+                                        Semester @o.Semester
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="h5 mb-0 fw-bold" style="color: @clrEmerald;">@o.BatchCount</div>
+                                    <div class="text-muted" style="font-size: 0.65rem;">GROUPS</div>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="btn-group shadow-sm rounded-3 overflow-hidden">
+                                        <a class="btn btn-white btn-sm px-3 border" asp-controller="ProgramOfficer" asp-action="Review" asp-route-offeringId="@o.OfferingId" title="Review Setup">
+                                            <i class="bi bi-eye text-primary"></i>
+                                        </a>
+                                        <a class="btn btn-white btn-sm px-3 border" asp-controller="ProgramOfficer" asp-action="Sections" asp-route-offeringId="@o.OfferingId" title="Manage Sections">
+                                            <i class="bi bi-grid-3x3-gap text-info"></i>
+                                        </a>
+                                        <form asp-controller="ProgramOfficer" asp-action="DeleteApprovedOffering" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="offeringId" value="@o.OfferingId" />
+                                            <button type="submit" class="btn btn-white btn-sm px-3 border" 
+                                                    onclick="return confirm('WARNING: This will delete everything (Sections, Grids, and Assignments) for this offering. Continue?');">
+                                                <i class="bi bi-trash3 text-danger"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

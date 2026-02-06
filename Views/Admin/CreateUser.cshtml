@@ -1,0 +1,74 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@model ScheduleCentral.Models.ViewModels.AdminCreateUserViewModel
+@{
+    ViewData["Title"] = "Create User";
+}
+
+<h1>@ViewData["Title"]</h1>
+<p>Create a new account for a Student, Program Officer, or other role.</p>
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="CreateUser" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-floating mb-3">
+                <input asp-for="FirstName" class="form-control" />
+                <label asp-for="FirstName"></label>
+                <span asp-validation-for="FirstName" class="text-danger"></span>
+            </div>
+
+            <div class="form-floating mb-3">
+                <input asp-for="LastName" class="form-control" />
+                <label asp-for="LastName"></label>
+                <span asp-validation-for="LastName" class="text-danger"></span>
+            </div>
+
+            <div class="form-floating mb-3">
+                <input asp-for="Email" class="form-control" />
+                <label asp-for="Email"></label>
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            <div class="form-floating mb-3">
+                <input asp-for="Password" class="form-control" />
+                <label asp-for="Password"></label>
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+            <div class="form-floating mb-3">
+                <div class="border rounded-3 p-3 bg-light-subtle">
+                    <div class="row g-2">
+                        @{ var roleIndex = 0; }
+                        @foreach (var role in (IEnumerable<SelectListItem>)ViewBag.Roles)
+                        {
+                            var roleKey = (role.Value ?? role.Text ?? "").Trim();
+                            var safe = new string(roleKey.Where(char.IsLetterOrDigit).ToArray());
+                            if (string.IsNullOrWhiteSpace(safe)) safe = $"idx{roleIndex}";
+                            var rid = $"createRolePage_{safe}_{roleIndex}";
+                            <div class="col-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="@rid" name="SelectedRoles" value="@role.Value" @(role.Selected ? "checked" : null) />
+                                    <label class="form-check-label" for="@rid">@role.Text</label>
+                                </div>
+                            </div>
+                            roleIndex++;
+                        }
+                    </div>
+                </div>
+                <label asp-for="SelectedRoles"></label>
+                <span asp-validation-for="SelectedRoles" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="w-100 btn btn-lg btn-primary">Create User</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+

@@ -1,0 +1,83 @@
+@page
+@model LoginWith2faModel
+@{
+    ViewData["Title"] = "Two-factor authentication";
+}
+
+<partial name="_StatusMessage" model="Model.StatusMessage" />
+
+<h2>@ViewData["Title"]</h2>
+<hr />
+<p>
+    Please check your email for the code and enter it below.
+</p>
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <form method="post" asp-route-returnUrl="@Model.ReturnUrl">
+            <input asp-for="RememberMe" type="hidden" />
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+            <div class="mb-3">
+                <label asp-for="Input.TwoFactorCode" class="form-label"><b>Authentication Code</b></label>
+                <div class="d-flex gap-2 justify-content-center">
+                    <input type="text" maxlength="1" class="form-control text-center" style="width: 50px; height: 50px; font-size: 1.5rem;" />
+                    <input type="text" maxlength="1" class="form-control text-center" style="width: 50px; height: 50px; font-size: 1.5rem;" />
+                    <input type="text" maxlength="1" class="form-control text-center" style="width: 50px; height: 50px; font-size: 1.5rem;" />
+                    <input type="text" maxlength="1" class="form-control text-center" style="width: 50px; height: 50px; font-size: 1.5rem;" />
+                    <input type="text" maxlength="1" class="form-control text-center" style="width: 50px; height: 50px; font-size: 1.5rem;" />
+                    <input type="text" maxlength="1" class="form-control text-center" style="width: 50px; height: 50px; font-size: 1.5rem;" />
+                </div>
+                <input asp-for="Input.TwoFactorCode" type="hidden" />
+                <span asp-validation-for="Input.TwoFactorCode" class="text-danger"></span>
+            </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-gradient-primary btn-lg fw-bold fs-6">Log in</button>
+                    </div>
+        </form>
+    </div>
+</div>
+<p>
+    If you don't have access to your code generator device or email, you can
+    <a asp-page="./LoginWithRecoveryCode" asp-route-returnUrl="@Model.ReturnUrl">log in with a recovery code</a>.
+</p>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputs = document.querySelectorAll('input[type="text"][maxlength="1"]');
+            const hiddenInput = document.querySelector('input[name="Input.TwoFactorCode"]');
+            
+            inputs.forEach((input, index) => {
+                input.addEventListener('input', function() {
+                    if (this.value.length === 1 && index < inputs.length - 1) {
+                        inputs[index + 1].focus();
+                    }
+                    updateHiddenInput();
+                });
+                
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && this.value === '' && index > 0) {
+                        inputs[index - 1].focus();
+                    }
+                });
+                
+                input.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const pastedData = e.clipboardData.getData('text').slice(0, 6);
+                    for (let i = 0; i < pastedData.length && i < inputs.length; i++) {
+                        inputs[i].value = pastedData[i];
+                    }
+                    if (pastedData.length > 0 && pastedData.length < inputs.length) {
+                        inputs[pastedData.length].focus();
+                    }
+                    updateHiddenInput();
+                });
+            });
+            
+            function updateHiddenInput() {
+                const code = Array.from(inputs).map(input => input.value).join('');
+                hiddenInput.value = code;
+            }
+        });
+    </script>
+}

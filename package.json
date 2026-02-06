@@ -1,0 +1,33 @@
+{
+  "name": "schedulecentral",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack",
+    "watch": "webpack --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@headlessui/react": "^2.2.9",
+    "@heroicons/react": "^2.2.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.6"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
+    "@babel/preset-react": "^7.28.5",
+    "@babel/preset-typescript": "^7.28.5",
+    "@babel/runtime": "^7.28.4",
+    "@types/react-router-dom": "^5.3.3",
+    "babel-loader": "^10.0.0",
+    "ts-loader": "^9.5.4",
+    "webpack": "^5.102.1",
+    "webpack-cli": "^6.0.1"
+  }
+}

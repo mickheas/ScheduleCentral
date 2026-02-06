@@ -1,0 +1,251 @@
+@model ScheduleCentral.Models.ViewModels.PublicScheduleViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "View Schedule";
+    
+    // Custom Palette
+    var clrIndigo = "#4f46e5"; // Primary
+    var clrEmerald = "#10b981"; // Success/Header
+    var clrAmber = "#f59e0b"; // Accents
+    var clrCyan = "#06b6d4"; // Secondary info
+    var lightBg = "#f8fafc";
+    
+    var selectedSection = Model.Sections?.FirstOrDefault(s => s.SectionId == Model.SectionId)?.DisplayName ?? "N/A";
+}
+
+<style>
+    .print-header { display: none; }
+
+    @@media print {
+        .no-print, .btn { display: none !important; }
+        
+        .print-header { 
+            display: block !important; 
+            margin-bottom: 20px;
+            border-bottom: 3px solid @clrIndigo;
+            padding-bottom: 10px;
+        }
+
+        /* Forces columns to stack or stay side-by-side in PDF */
+        .row { display: block !important; }
+        .col-lg-8, .col-lg-4 { width: 100% !important; margin-bottom: 30px !important; }
+        
+        .card { border: 1px solid #e2e8f0 !important; box-shadow: none !important; break-inside: avoid; }
+        
+        /* Ensure colors show up in PDF */
+        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+    
+    .filter-label { font-size: 0.75rem; font-weight: 700; text-uppercase; color: #64748b; margin-bottom: 0.5rem; }
+</style>
+
+<div class="container-fluid px-4 py-3">
+    
+    <div class="print-header">
+        <h1 style="color: @clrIndigo; margin: 0;">Schedule Report</h1>
+        <h3 style="color: @clrEmerald;">Section: @selectedSection</h3>
+        <p style="color: #64748b;">Academic Year: @Model.AcademicYear | Program: @Model.Program</p>
+
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h4 mb-1 fw-bold" style="color: #2d3748;">Public Schedule Viewer</h1>
+            <div class="text-muted small">
+                <i class="bi bi-info-circle me-1"></i> Browse the current timetable by academic year, program, and section.
+            </div>
+        </div>
+        <div class="no-print">
+            <button onclick="window.print()" class="btn btn-outline-primary fw-bold shadow-sm d-flex align-items-center">
+                <i class="bi bi-printer me-2"></i> Save as PDF / Print
+            </button>
+        </div>
+    </div>
+    <div class="card shadow-sm border-0 rounded-3 mb-4 no-print" style="background-color: white; border-top: 4px solid @clrEmerald !important;">
+        <div class="card-body py-3">
+            <form asp-controller="Schedule" asp-action="Public" method="get" class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <div class="filter-label text-uppercase">Academic Year</div>
+                    <select name="academicYear" class="form-select border-light bg-light" onchange="this.form.submit()">
+                        @foreach (var y in Model.AcademicYears) {
+                            <option value="@y" selected="@(y == Model.AcademicYear ? "selected" : null)">@y</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="filter-label text-uppercase">Program</div>
+                    <select name="program" class="form-select border-light bg-light" onchange="this.form.submit()">
+                        @foreach (var p in Model.Programs) {
+                            <option value="@p" selected="@(p == Model.Program ? "selected" : null)">@p</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <div class="filter-label text-uppercase">Program Type</div>
+                    <select name="programType" class="form-select border-light bg-light" onchange="this.form.submit()">
+                        <option value="" selected="@(string.IsNullOrWhiteSpace(Model.ProgramType) ? "selected" : null)">All</option>
+                        <option value="Regular" selected="@(string.Equals(Model.ProgramType, "Regular", StringComparison.OrdinalIgnoreCase) ? "selected" : null)">Regular</option>
+                        <option value="Extension" selected="@(string.Equals(Model.ProgramType, "Extension", StringComparison.OrdinalIgnoreCase) ? "selected" : null)">Extension</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="filter-label text-uppercase">Section Selection</div>
+                    <select name="sectionId" class="form-select border-light bg-light" onchange="this.form.submit()">
+                        @if (Model.Sections != null) {
+                            foreach (var s in Model.Sections) {
+                                <option value="@s.SectionId" selected="@(Model.SectionId == s.SectionId ? "selected" : null)">@s.DisplayName</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-2 text-md-end">
+                    <button type="submit" class="btn fw-bold w-100 shadow-sm text-white" style="background-color: @clrIndigo;">
+                        <i class="bi bi-filter me-1"></i> Apply
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
+                <div class="card-header border-0 d-flex align-items-center py-3" style="background-color: @clrIndigo;">
+                    <i class="bi bi-calendar3 text-white me-2"></i>
+                    <h6 class="mb-0 fw-bold text-white">Weekly Timetable Grid</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle mb-0 text-center" style="border-color: #e2e8f0;">
+                            <thead style="background-color: @lightBg;">
+                                <tr>
+                                    <th class="py-3 small text-uppercase fw-bold" style="color: @clrIndigo; width: 100px;">Slot</th>
+                                    @foreach (var d in Model.Days) {
+                                        <th class="py-3 small text-uppercase fw-bold" style="color: @clrIndigo;">@d.Label</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var slot in Model.Slots) {
+                                    <tr>
+                                        <td style="background-color: #fffbeb;">
+                                            <div class="fw-bold" style="color: @clrAmber;">@slot.SlotNumber</div>
+                                            <div class="text-muted" style="font-size: 0.65rem;">@slot.TimeRange</div>
+                                        </td>
+                                        @foreach (var d in Model.Days) {
+                                            var key = $"{d.DayOfWeek}:{slot.SlotNumber}";
+                                            var cell = Model.Cells.ContainsKey(key) ? Model.Cells[key] : null;
+                                            <td style="height:100px; vertical-align: top;" class="p-2">
+                                                @if (cell != null && !string.IsNullOrWhiteSpace(cell.Course)) {
+                                                    <div class="rounded p-2 h-100 shadow-sm" style="background-color: #f0fdf4; border-left: 3px solid @clrEmerald;">
+                                                        <div class="fw-bold mb-1" style="color: @clrIndigo; font-size: 0.75rem;">@cell.Course</div>
+                                                        <div class="text-dark fw-medium" style="font-size: 0.65rem;"><i class="bi bi-geo-alt"></i> @cell.Room</div>
+                                                        <div class="text-muted" style="font-size: 0.65rem;">@cell.Instructor</div>
+                                                    </div>
+                                                }
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 rounded-3 overflow-hidden h-100" style="border-top: 4px solid @clrIndigo !important;">
+                <div class="card-header bg-white border-0 pt-3">
+                    <h6 class="mb-0 fw-bold" style="color: @clrIndigo;"><i class="bi bi-list-stars me-2"></i>Course Summary</h6>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead style="background-color: @lightBg;">
+                            <tr>
+                                <th class="ps-4 small text-uppercase text-muted fw-bold">Course</th>
+                                <th class="small text-uppercase text-muted fw-bold text-end pe-4">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var c in Model.Courses) {
+                                <tr>
+                                    <td class="ps-4 py-3">
+                                        <div class="fw-bold" style="color: @clrIndigo;">@c.Course</div>
+                                        <div class="text-muted small">@c.Instructor</div>
+                                        <div class="text-cyan small" style="color: @clrCyan;"><i class="bi bi-door-open"></i> @c.Room</div>
+                                    </td>
+                                    <td class="align-middle text-end pe-4">
+                                        <span class="badge rounded-pill px-3 py-2" style="background-color: #fffbeb; color: @clrAmber; border: 1px solid @clrAmber;">
+                                            @c.Time
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+           
+
+                    <div class="card shadow-sm border-0 rounded-3 overflow-hidden mt-4" style="border-top: 4px solid @clrIndigo !important;">
+                        <div class="card-header bg-white border-0 pt-3">
+                            <h6 class="mb-0 fw-bold" style="color: @clrIndigo;"><i class="bi bi-envelope-paper me-2"></i>Subscribe</h6>
+                        </div>
+                        <div class="card-body">
+                            @if (!Model.SectionId.HasValue)
+                            {
+                                <div class="text-muted small">Select a section to subscribe for updates.</div>
+                            }
+                            else
+                            {
+                                <form asp-controller="ScheduleSubscription" asp-action="Subscribe" method="post" class="d-flex flex-column gap-2">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="sectionId" value="@Model.SectionId.Value" />
+                                    <input type="hidden" name="academicYear" value="@Model.AcademicYear" />
+                                    <input type="hidden" name="semester" value="@Model.Semester" />
+                                    <input type="hidden" name="returnUrl" value="@($"{Context.Request.Path}{Context.Request.QueryString}")" />
+
+                                    <input type="email" name="email" class="form-control" placeholder="you@example.com" required />
+                                    <button type="submit" class="btn btn-primary btn-sm">Subscribe</button>
+                                    <div class="text-muted small">We will email you when this section’s schedule changes (after you confirm).</div>
+                                </form>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm border-0 rounded-3 overflow-hidden mt-4" style="border-top: 4px solid @clrCyan !important;">
+                        <div class="card-header bg-white border-0 pt-3">
+                            <h6 class="mb-0 fw-bold" style="color: @clrCyan;"><i class="bi bi-megaphone me-2"></i>Change Log</h6>
+                        </div>
+                        <div class="card-body">
+                            @if (Model.ChangeLogs == null || !Model.ChangeLogs.Any())
+                            {
+                                <div class="text-muted small">No recent changes.</div>
+                            }
+                            else
+                            {
+                                <div class="list-group list-group-flush">
+                                    @foreach (var log in Model.ChangeLogs)
+                                    {
+                                        <div class="list-group-item px-0">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div class="fw-bold" style="color: @clrIndigo;">@log.Title</div>
+                                                <div class="text-muted" style="font-size: 0.75rem;">@log.ChangedAtUtc.ToLocalTime().ToString("g")</div>
+                                            </div>
+                                            @if (!string.IsNullOrWhiteSpace(log.Details))
+                                            {
+                                                <div class="text-muted small">@log.Details</div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+        </div>
+    </div>
+</div>

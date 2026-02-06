@@ -1,0 +1,81 @@
+@* @model ScheduleCentral.Models.Course
+@{
+    ViewData["Title"] = "Edit Course";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2 class="h4 mb-3">Edit Course — @ViewBag.DepartmentName</h2>
+
+<form asp-action="Edit" method="post" class="card p-3 shadow-sm">
+    <input type="hidden" asp-for="Id" />
+    <div class="row g-2 mb-2">
+        <div class="col-md-4">
+            <label class="form-label">Code</label>
+            <input asp-for="Code" class="form-control" required />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Credits</label>
+            <input asp-for="CreditHours" type="number" class="form-control" required />
+        </div>
+    </div>
+    <div class="mb-2">
+        <label class="form-label">Name</label>
+        <input asp-for="Name" class="form-control" required />
+    </div>
+    <div class="row g-2 mb-2">
+        <div class="col-md-4">
+            <label class="form-label">Lecture Hours</label>
+            <input asp-for="LectureHours" type="number" class="form-control" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Lab Hours</label>
+            <input asp-for="LabHours" type="number" class="form-control" />
+        </div>
+    </div>
+    <div class="mt-3 d-flex justify-content-between">
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Back</a>
+        <button type="submit" class="btn btn-primary btn-sm">Save</button>
+    </div>
+</form> *@
+@model ScheduleCentral.Models.Course
+@{
+    ViewData["Title"] = "Edit Course";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <h2 class="h4 mb-4 fw-bold">Edit Course <small class="text-muted fw-normal">— @ViewBag.DepartmentName</small></h2>
+
+            <form asp-action="Edit" method="post" class="card shadow-sm border-0">
+                <input type="hidden" asp-for="Id" />
+                <div class="card-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Course Code</label>
+                            <input asp-for="Code" class="form-control form-control-lg bg-light border-0 shadow-none fw-bold text-primary" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Credit Units</label>
+                            <input asp-for="CreditHours" type="number" class="form-control form-control-lg bg-light border-0 shadow-none" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Course Name</label>
+                            <input asp-for="Name" class="form-control form-control-lg bg-light border-0 shadow-none" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Contact Hours</label>
+                            <input asp-for="LectureHours" type="number" class="form-control bg-light border-0 shadow-none" />
+                            <input asp-for="LabHours" type="hidden" value="0" />
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-white p-3 d-flex justify-content-between align-items-center">
+                    <a asp-action="Index" class="btn btn-link text-muted text-decoration-none">Cancel Changes</a>
+                    <button type="submit" class="btn btn-primary px-5 shadow-sm">Update Course</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

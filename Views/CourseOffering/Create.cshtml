@@ -1,0 +1,93 @@
+@model ScheduleCentral.Models.ViewModels.CourseOfferingCreateViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Create Course Offering";
+}
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-0">Create Course Offering</h5>
+                <small class="text-muted">Create the academic container � Year + Semester + Department</small>
+            </div>
+            <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">Back</a>
+        </div>
+
+        <div class="card-body">
+            <form asp-action="Create" method="post" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Department</label>
+                    <input asp-for="Department" class="form-control" readonly="@(!User.IsInRole("Admin"))" />
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Academic Year</label>
+                    <input asp-for="AcademicYear" class="form-control" readonly />
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Semester</label>
+                    <input class="form-control" value="@Model.Semester" readonly />
+                    <input type="hidden" asp-for="Semester" />
+                </div>
+
+                <div class="col-12 text-end mt-2">
+                    <button type="submit" class="btn btn-primary">Create Offering</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@*
+@model ScheduleCentral.Models.ViewModels.CourseOfferingCreateViewModel
+@{
+    ViewData["Title"] = "Create Course Offering";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <h2 class="h4 mb-3">Create Course Offering</h2>
+
+    <form asp-action="Create" method="post" class="card p-4 shadow-sm">
+
+        <div class="mb-3">
+            <label class="form-label">Course</label>
+            <select asp-for="CourseId" asp-items="Model.Courses" class="form-select"></select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Instructor</label>
+            <select asp-for="InstructorId" asp-items="Model.Instructors" class="form-select"></select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Room Types</label>
+            <select asp-for="SelectedRoomTypeIds" asp-items="Model.RoomTypes"
+                    class="form-select" multiple></select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Contact Hours</label>
+            <input asp-for="ContactHours" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Year Level</label>
+            <select asp-for="YearLevel" asp-items="Model.YearLevels" class="form-select"></select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Program Type</label>
+            <select asp-for="ProgramType" asp-items="Model.ProgramTypes" class="form-select"></select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Batch</label>
+            <select asp-for="BatchId" asp-items="Model.Batches" class="form-select"></select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Create</button>
+        <a href="@Url.Action("Index")" class="btn btn-secondary ms-2">Cancel</a>
+    </form>
+</div> *@

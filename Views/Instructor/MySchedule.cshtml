@@ -1,0 +1,176 @@
+@model ScheduleCentral.Models.ViewModels.InstructorWeeklyScheduleViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "My Weekly Schedule";
+
+    var clrIndigo = "#4f46e5";
+    var clrCyan = "#06b6d4";
+    var clrAmber = "#f59e0b";
+    var lightBg = "#f8fafc";
+}
+
+@functions {
+    string DayLabel(int dayOfWeek)
+    {
+        return dayOfWeek switch
+        {
+            1 => "Monday",
+            2 => "Tuesday",
+            3 => "Wednesday",
+            4 => "Thursday",
+            5 => "Friday",
+            6 => "Saturday",
+            7 => "Sunday",
+            _ => $"Day {dayOfWeek}"
+        };
+    }
+
+    string SlotTimeRange(int slot)
+    {
+        return slot switch
+        {
+            1 => "08:30 – 09:20",
+            2 => "09:30 – 10:20",
+            3 => "10:30 – 11:20",
+            4 => "11:30 – 12:20",
+            5 => "13:30 – 14:20",
+            6 => "14:30 – 15:20",
+            7 => "15:30 – 16:20",
+            8 => "16:30 – 17:20",
+            9 => "18:30 – 19:20",
+            10 => "19:30 – 20:20",
+            _ => ""
+        };
+    }
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+        <div>
+            <h1 class="h4 mb-1 fw-bold" style="color:@clrIndigo;">My Weekly Schedule</h1>
+            <div class="text-muted small">
+                @Model.InstructorName
+                @if (!string.IsNullOrWhiteSpace(Model.AcademicYear))
+                {
+                    <text> · @Model.AcademicYear · Sem @Model.Semester</text>
+                }
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-sm btn-outline-secondary fw-bold" asp-controller="Instructor" asp-action="Availability">
+                <i class="bi bi-calendar-week me-1"></i> Availability
+            </a>
+        </div>
+    </div>
+
+    @if (!Model.PublicationId.HasValue)
+    {
+        <div class="alert alert-info border-0 shadow-sm">No approved schedule has been published for the active term yet.</div>
+    }
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden" style="border-top: 4px solid @clrIndigo;">
+                <div class="card-header bg-white border-0 py-3 d-flex align-items-center">
+                    <i class="bi bi-calendar3 me-2" style="color:@clrIndigo;"></i>
+                    <h6 class="mb-0 fw-bold" style="color:@clrIndigo;">Weekly View</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle mb-0 text-center" style="border-color:#e2e8f0;">
+                            <thead style="background-color:@lightBg;">
+                                <tr>
+                                    <th class="py-3 small text-uppercase fw-bold" style="color:@clrIndigo; width: 160px;">Slot</th>
+                                    @foreach (var d in Model.Days)
+                                    {
+                                        <th class="py-3 small text-uppercase fw-bold" style="color:@clrIndigo;">@d.Label</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var slot in Model.Slots)
+                                {
+                                    <tr>
+                                        <td style="background-color: #fffbeb;">
+                                            <div class="fw-bold" style="color:@clrAmber;">@slot.SlotNumber</div>
+                                            <div class="text-muted" style="font-size:0.7rem;">@slot.TimeRange</div>
+                                        </td>
+                                        @foreach (var d in Model.Days)
+                                        {
+                                            var key = $"{d.DayOfWeek}:{slot.SlotNumber}";
+                                            var cell = Model.Cells.ContainsKey(key) ? Model.Cells[key] : null;
+                                            <td style="height:90px; vertical-align: top;" class="p-2">
+                                                @if (cell != null && !string.IsNullOrWhiteSpace(cell.Course))
+                                                {
+                                                    <div class="rounded p-2 h-100 shadow-sm text-start" style="background-color:#eef2ff; border-left: 3px solid @clrCyan;">
+                                                        <div class="fw-bold mb-1" style="color:@clrIndigo; font-size:0.75rem;">@cell.Course</div>
+                                                        <div class="text-muted" style="font-size:0.65rem;"><i class="bi bi-geo-alt"></i> @cell.Room</div>
+                                                    </div>
+                                                }
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden" style="border-top: 4px solid @clrCyan;">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="mb-0 fw-bold" style="color:@clrCyan;"><i class="bi bi-list-check me-2"></i>My Meetings</h6>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead style="background-color:@lightBg;">
+                            <tr>
+                                <th class="ps-4 small text-uppercase text-muted fw-bold">Course</th>
+                                <th class="small text-uppercase text-muted fw-bold text-end pe-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Meetings == null || Model.Meetings.Count == 0)
+                            {
+                                <tr><td colspan="2" class="text-center py-5 text-muted small">No meetings.</td></tr>
+                            }
+                            else
+                            {
+                                foreach (var m in Model.Meetings)
+                                {
+                                    <tr>
+                                        <td class="ps-4 py-3">
+                                            <div class="fw-bold" style="color:@clrIndigo; font-size:0.85rem;">@m.Course</div>
+                                            <div class="text-muted small">@m.Section</div>
+                                            <div class="text-muted small"><i class="bi bi-clock"></i> @DayLabel(m.DayOfWeek) · Slot @m.SlotStart (@SlotTimeRange(m.SlotStart))</div>
+                                            <div class="text-muted small"><i class="bi bi-door-open"></i> @m.Room</div>
+                                        </td>
+                                        <td class="align-middle text-end pe-4">
+                                            @if (m.HasPendingSwapRequest)
+                                            {
+                                                <div class="d-flex flex-column align-items-end gap-1">
+                                                    <span class="badge rounded-pill" style="background-color:#fff7ed; color:#9a3412; border:1px solid #fed7aa;">Pending</span>
+                                                    <a class="btn btn-sm btn-outline-secondary fw-bold" asp-controller="SwapRequest" asp-action="Index">
+                                                        View Request
+                                                    </a>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <a class="btn btn-sm btn-outline-primary fw-bold" asp-controller="SwapRequest" asp-action="Create" asp-route-meetingId="@m.MeetingId">
+                                                    <i class="bi bi-arrow-left-right me-1"></i> Request Swap
+                                                </a>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

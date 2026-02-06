@@ -1,0 +1,85 @@
+@model ScheduleCentral.Models.ViewModels.NotificationsIndexViewModel
+@{
+    ViewData["Title"] = "Notifications";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid px-4 py-3">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h1 class="h4 mb-1 fw-bold" style="color:#4f46e5;">Notifications</h1>
+            <div class="text-muted small">
+                @if (Model.UnreadCount > 0)
+                {
+                    <span><strong>@Model.UnreadCount</strong> unread</span>
+                }
+                else
+                {
+                    <span>All caught up.</span>
+                }
+            </div>
+        </div>
+
+        <form asp-action="MarkAllRead" method="post" class="mb-0">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnUrl" value="@Url.Action("Index", "Notifications")" />
+            <button type="submit" class="btn btn-sm btn-outline-secondary fw-bold" @(Model.UnreadCount == 0 ? "disabled" : null)>
+                <i class="bi bi-check2-all me-1"></i>
+                Mark all read
+            </button>
+        </form>
+    </div>
+
+    @if (Model.Notifications == null || Model.Notifications.Count == 0)
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-muted">No notifications yet.</div>
+        </div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="list-group list-group-flush">
+                @foreach (var n in Model.Notifications)
+                {
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="me-3">
+                            <div class="d-flex align-items-center gap-2">
+                                @if (!n.IsRead)
+                                {
+                                    <span class="badge rounded-pill text-bg-warning">New</span>
+                                }
+                                <div class="fw-semibold">@n.Title</div>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(n.Message))
+                            {
+                                <div class="text-muted small">@n.Message</div>
+                            }
+                            <div class="text-muted" style="font-size: 0.75rem;">@n.CreatedAtUtc.ToLocalTime().ToString("f")</div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            @if (!string.IsNullOrWhiteSpace(n.Url))
+                            {
+                                <a asp-action="Go" asp-route-id="@n.Id" class="btn btn-sm btn-primary">
+                                    Open
+                                </a>
+                            }
+                            else
+                            {
+                                <form asp-action="MarkRead" method="post" class="mb-0">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@n.Id" />
+                                    <input type="hidden" name="returnUrl" value="@Url.Action("Index", "Notifications")" />
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary" @(n.IsRead ? "disabled" : null)>
+                                        Mark read
+                                    </button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>

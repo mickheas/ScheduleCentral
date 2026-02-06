@@ -1,0 +1,186 @@
+@model ScheduleCentral.Models.ViewModels.BatchViewModel
+@{
+    var coursesSelect = ViewBag.Courses as SelectList;
+    var instructors = ViewBag.Instructors as IEnumerable<SelectListItem>;
+    var roomTypes = ViewBag.RoomTypes as List<ScheduleCentral.Models.RoomType>;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <div><strong>@Model.BatchName</strong> — Semester: @Model.SemesterName</div>
+    <div class="btn-group">
+        <button class="btn btn-sm btn-outline-secondary" onclick="deleteBatch(@Model.Id)">Delete Batch</button>
+        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addCourseModal-@Model.Id">Add Course</button>
+    </div>
+</div>
+
+<table class="table table-hover">
+    <thead>
+        <tr>
+            <th style="width:50px">#</th>
+            <th>Course</th>
+            <th style="width:120px">Contact Hrs</th>
+            <th>Room Types</th>
+            <th style="width:200px">Instructor</th>
+            <th style="width:120px">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (!Model.Courses.Any())
+        {
+            <tr><td colspan="6" class="text-center text-muted">No courses added yet.</td></tr>
+        }
+        else
+        {
+            var idx = 1;
+            foreach (var c in Model.Courses)
+            {
+                <tr>
+                    <td>@idx</td>
+                    <td>@c.CourseName</td>
+                    <td>@c.ContactHours</td>
+                    <td>@string.Join(", ", c.RoomTypes)</td>
+                    <td>@c.InstructorName</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="openManageCourseModal(@c.Id)">Manage</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteCourse(@c.Id)">Delete</button>
+                    </td>
+                </tr>
+                idx++;
+            }
+        }
+    </tbody>
+</table>
+
+@* Add Course Modal (per-batch) *@
+<div class="modal fade" id="addCourseModal-@Model.Id" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">Add Course to @Model.BatchName</h5>
+            <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+            <form id="addCourseForm-@Model.Id">
+                <input type="hidden" name="BatchId" value="@Model.Id" />
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label">Course</label>
+                        <select name="CourseId" class="form-select">
+                            <option value="">-- Select Course --</option>
+                            @foreach (SelectListItem item in coursesSelect!)
+                            {
+                                <option value="@item.Value">@item.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Instructor (optional)</label>
+                        <select name="InstructorId" class="form-select">
+                            <option value="">-- Unassigned --</option>
+                            @foreach (var it in instructors!)
+                            {
+                               // 1. Determine the attribute string (will be " disabled" or "")
+                                var disabledAttribute = it.Disabled ? " disabled" : "";
+
+                                // 2. Assemble the entire <option> tag using string interpolation
+                                var optionHtml = $"<option value=\"{it.Value}\"{disabledAttribute}>{it.Text}</option>";
+                                
+                                // 3. Output the raw HTML string, bypassing Tag Helper validation
+                                @Html.Raw(optionHtml)
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <label class="form-label">Room Types & Hours / week</label>
+                    <div class="row g-2">
+                        @foreach (var rt in roomTypes!)
+                        {
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input rt-check" id="rt-@rt.Id-@Model.Id" value="@rt.Id" />
+                                    <label class="form-check-label" for="rt-@rt.Id-@Model.Id">@rt.Name</label>
+                                    <input type="number" class="form-control mt-1 rt-hours" data-rt="@rt.Id" name="Hours_@rt.Id" placeholder="hrs/week" style="display:none" min="1" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button class="btn btn-primary" onclick="submitAddCourse(@Model.Id)">Add Course</button>
+        </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // show/hide hours input when room type checked
+    document.querySelectorAll('#addCourseModal-@Model.Id .rt-check').forEach(ch => {
+        ch.addEventListener('change', e => {
+            const rt = e.target.value;
+            const input = document.querySelector('#addCourseModal-@Model.Id .rt-hours[data-rt="' + rt + '"]');
+            if (input) input.style.display = e.target.checked ? 'block' : 'none';
+        });
+    });
+
+    async function submitAddCourse(batchId) {
+        const form = document.querySelector('#addCourseForm-' + batchId);
+        const fd = new FormData(form);
+        const courseId = parseInt(fd.get('CourseId'));
+        const instructorId = fd.get('InstructorId') || null;
+
+        // collect room type ids and hours
+        const roomTypeIds = [];
+        const hours = {};
+        document.querySelectorAll('#addCourseForm-' + batchId + ' .rt-check:checked').forEach(ch => {
+            const id = parseInt(ch.value);
+            roomTypeIds.push(id);
+            const hrs = document.querySelector('#addCourseForm-' + batchId + ' .rt-hours[data-rt="' + id + '"]').value || 0;
+            hours[id] = parseInt(hrs);
+        });
+
+        const payload = {
+            BatchId: batchId,
+            CourseId: courseId,
+            InstructorId: instructorId,
+            RoomTypeIds: roomTypeIds,
+            HoursPerRoomType: hours
+        };
+
+        const resp = await fetch('@Url.Action("AddCourseToBatch")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const j = await resp.json();
+        if (j.success) location.reload();
+        else alert('Failed: ' + JSON.stringify(j));
+    }
+
+    async function deleteBatch(batchId) {
+        if (!confirm('Delete batch and all its courses?')) return;
+        const r = await fetch('@Url.Action("DeleteBatch")', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'batchId=' + batchId });
+        const j = await r.json();
+        if (j.success) location.reload();
+        else alert('Delete failed');
+    }
+
+    async function deleteCourse(sectionId) {
+        if (!confirm('Delete this course row?')) return;
+        const r = await fetch('@Url.Action("DeleteCourse")', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'sectionId=' + sectionId });
+        const j = await r.json();
+        if (j.success) location.reload();
+        else alert('Delete failed');
+    }
+
+    function openManageCourseModal(sectionId) {
+        alert('Manage course row ' + sectionId + ' — you can implement a modal to edit room requirements & instructor here.');
+    }
+</script>
+}

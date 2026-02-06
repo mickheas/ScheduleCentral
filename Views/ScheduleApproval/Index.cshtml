@@ -1,0 +1,68 @@
+@model List<ScheduleCentral.Controllers.ScheduleApprovalListItemViewModel>
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Schedule Approvals";
+
+    var clrIndigo = "#4f46e5";
+    var clrCyan = "#06b6d4";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h4 mb-1 fw-bold" style="color: @clrIndigo;">Schedule Approvals</h1>
+            <div class="text-muted small">Review submitted schedules and approve/reject with feedback.</div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="border-top: 4px solid @clrCyan;">
+        <div class="card-header bg-white border-0 py-3">
+            <h6 class="mb-0 fw-bold" style="color: @clrIndigo;">Submitted Schedules</h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead style="background-color: #f8fafc;">
+                        <tr>
+                            <th class="ps-4 small text-uppercase text-muted fw-bold">Term</th>
+                            <th class="small text-uppercase text-muted fw-bold">Submitted (UTC)</th>
+                            <th class="small text-uppercase text-muted fw-bold">Meetings</th>
+                            <th class="small text-uppercase text-muted fw-bold text-end pe-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model == null || Model.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-5">No submitted schedules.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var p in Model)
+                            {
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="fw-bold">@p.AcademicYear · Sem @p.Semester</div>
+                                        <div class="text-muted small">Publication #@p.PublicationId</div>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted small">@(p.SubmittedAtUtc?.ToString("yyyy-MM-dd HH:mm") ?? "-")</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge rounded-pill px-3 py-2" style="background-color:#eef2ff; color:@clrIndigo; border:1px solid #e0e7ff;">@p.MeetingsCount</span>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <a class="btn btn-sm btn-outline-primary fw-bold" asp-controller="ScheduleApproval" asp-action="Review" asp-route-id="@p.PublicationId">
+                                            <i class="bi bi-eye me-1"></i> Review
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

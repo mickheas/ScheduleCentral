@@ -1,0 +1,29 @@
+@* @model ScheduleCentral.Models.ViewModels.BatchViewModel
+
+@await Html.PartialAsync("_BatchCoursesTable", Model.Courses) *@
+@model ScheduleCentral.Models.ViewModels.BatchViewModel
+
+<div class="d-flex justify-content-between align-items-start mb-2">
+    <div>
+        <h6 class="mb-0">@Model.BatchName <small class="text-muted">(@Model.SemesterName)</small></h6>
+        <p class="small text-muted mb-0">@Model.Courses.Count() courses</p>
+    </div>
+
+    <div class="btn-group">
+        <a class="btn btn-sm btn-outline-primary" href="@Url.Action("ManageBatch", new { batchId = Model.Id })">
+            <i class="bi bi-gear me-1"></i> Manage
+        </a>
+        <a class="btn btn-sm btn-outline-secondary" href="@Url.Action("Details", "CourseOffering", new { id = Model.CourseOfferingId })">
+            <i class="bi bi-eye me-1"></i> Details
+        </a>
+        @if (Model.Status == OfferingStatus.Creation || Model.Status == OfferingStatus.Draft)
+        {
+            <form asp-action="Submit" asp-controller="CourseOffering" method="post" class="d-inline">
+                <input type="hidden" name="offeringId" value="@Model.CourseOfferingId" />
+                <button type="submit" class="btn btn-sm btn-success ms-1"><i class="bi bi-send me-1"></i> Submit</button>
+            </form>
+        }
+    </div>
+</div>
+
+@await Html.PartialAsync("_BatchCoursesTable", Model.Courses)

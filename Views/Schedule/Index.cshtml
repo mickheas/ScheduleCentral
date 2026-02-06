@@ -1,0 +1,242 @@
+@model ScheduleCentral.Models.ViewModels.ScheduleWorkspaceViewModel
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Generate Schedule";
+
+    // Palette Colors
+    var clrIndigo = "#4f46e5";
+    var clrEmerald = "#10b981";
+    var clrCyan = "#06b6d4";
+    var clrAmber = "#f59e0b";
+    var clrDanger = "#ef4444";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="mb-4">
+        <h1 class="h4 mb-1 fw-bold" style="color: @clrIndigo;">Schedule Workspace</h1>
+        <p class="text-muted small">Active term: <strong>@Model.AcademicYear</strong> · Sem <strong>@Model.Semester</strong></p>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="border-top: 4px solid @clrIndigo !important;">
+                <div class="card-header bg-white py-3 border-0">
+                    <h6 class="mb-0 fw-bold" style="color: @clrIndigo;">Algorithm Control Center</h6>
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                            <div>
+                                <div class="fw-bold">Workspace Status</div>
+                                <div class="text-muted small">
+                                    @if (Model.WorkspacePublicationId.HasValue)
+                                    {
+                                        <span>Publication: <strong>#@Model.WorkspacePublicationId</strong></span>
+                                        <span class="ms-2">Status: <strong>@(Model.WorkspaceStatus?.ToString() ?? "-")</strong></span>
+                                        @if (Model.WorkspaceGeneratedAtUtc.HasValue)
+                                        {
+                                            <span class="ms-2">Generated: <strong>@Model.WorkspaceGeneratedAtUtc.Value.ToString("yyyy-MM-dd HH:mm")</strong> UTC</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span>No draft workspace exists yet.</span>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(Model.WorkspaceFeedback))
+                                {
+                                    <div class="mt-2 p-2 rounded-3" style="background-color:#fffbeb; border: 1px solid @clrAmber + '40';">
+                                        <div class="small"><strong>Feedback:</strong> @Model.WorkspaceFeedback</div>
+                                    </div>
+                                }
+                            </div>
+                            <div class="text-end">
+                                @if (Model.ApprovedPublicationId.HasValue)
+                                {
+                                    <div class="small text-muted">Published schedule exists (Publication #@Model.ApprovedPublicationId)</div>
+                                }
+                                else
+                                {
+                                    <div class="small text-muted">No published schedule for this term yet.</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row align-items-center mb-4">
+                        <div class="col-md-8">
+                            <h5 class="fw-bold mb-1">Generate New Schedule</h5>
+                            <p class="text-muted small mb-0">Run the CSP solver to create conflict-free assignments based on current offerings and availability.</p>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            <form asp-controller="Schedule" asp-action="Generate" method="post">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn text-white fw-bold px-4 py-2 shadow-sm" style="background-color: @clrIndigo;" @(Model.ApprovedPublicationId.HasValue ? "disabled" : "")>
+                                    <i class="bi bi-cpu me-2"></i> Run Engine
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    @if (Model.ApprovedPublicationId.HasValue)
+                    {
+                        <div class="alert alert-warning border-0 shadow-sm mb-4 d-flex align-items-start" style="background-color:#fffbeb; color:#92400e;">
+                            <i class="bi bi-lock-fill me-2 mt-1"></i>
+                            <div>
+                                <div class="fw-bold">Generation locked</div>
+                                <div class="small">An approved schedule already exists. Delete the approved schedule to generate a new one.</div>
+                                <form asp-controller="Schedule" asp-action="DeleteApproved" method="post" class="mt-2" onsubmit="return confirm('Delete the approved schedule for the active term? This will remove the published schedule. Continue?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-danger fw-bold">
+                                        <i class="bi bi-trash3 me-1"></i> Delete Approved Schedule
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+
+                    <hr class="my-4" style="opacity: 0.1;">
+
+                    <div class="row align-items-center mb-4">
+                        <div class="col-md-8">
+                            <h5 class="fw-bold mb-1" style="color: @clrCyan;">Submit for Approval</h5>
+                            <p class="text-muted small mb-0">Submit the current draft workspace to TopManagement for approval/rejection before it appears on the public viewer.</p>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            <form asp-controller="Schedule" asp-action="Submit" method="post" onsubmit="return confirm('Submit the current draft schedule to TopManagement? You will not be able to regenerate until it is approved/rejected. Continue?');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-outline-primary fw-bold px-4 py-2" @(Model.WorkspacePublicationId.HasValue && (Model.WorkspaceStatus == ScheduleCentral.Models.SchedulePublicationStatus.DraftGenerated || Model.WorkspaceStatus == ScheduleCentral.Models.SchedulePublicationStatus.Rejected) ? "" : "disabled")>
+                                    <i class="bi bi-send me-2"></i> Submit
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="fw-bold mb-1" style="color: @clrDanger;">Reset Workspace</h5>
+                            <p class="text-muted small mb-0">Wipe all generated meeting slots for the active term. Use this to perform a fresh run.</p>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            <form asp-controller="Schedule" asp-action="Clear" method="post" onsubmit="return confirm('This will delete the current draft schedule workspace for the active term@(Model.MeetingsCount > 0 ? $" ({Model.MeetingsCount} meetings)" : ""). This action cannot be undone. Continue?');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-outline-danger fw-bold px-4 py-2">
+                                    <i class="bi bi-trash3 me-2"></i> Clear Grid
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 h-100" style="background-color: #f8fafc;">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold text-uppercase small mb-3" style="color: @clrCyan; letter-spacing: 1px;">Workspace Summary</h6>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <div class="p-3 bg-white rounded-3 border">
+                                <div class="text-muted small">Meetings</div>
+                                <div class="fw-bold">@Model.MeetingsCount</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-white rounded-3 border">
+                                <div class="text-muted small">Sections</div>
+                                <div class="fw-bold">@Model.SectionsCount</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-white rounded-3 border">
+                                <div class="text-muted small">Instructors</div>
+                                <div class="fw-bold">@Model.InstructorsCount</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-white rounded-3 border">
+                                <div class="text-muted small">Rooms</div>
+                                <div class="fw-bold">@Model.RoomsCount</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (Model.SectionLinks != null && Model.SectionLinks.Any())
+                    {
+                        <div class="mb-4">
+                            <div class="fw-bold small text-uppercase text-muted mb-2">Quick Links</div>
+                            <div class="list-group">
+                                @foreach (var s in Model.SectionLinks)
+                                {
+                                    <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" asp-controller="Schedule" asp-action="Grid" asp-route-sectionId="@s.SectionId" asp-route-publicationId="@Model.WorkspacePublicationId">
+                                        <span class="small">
+                                            @s.DisplayName
+                                            @if (s.IsExtension)
+                                            {
+                                                <span class="badge rounded-pill ms-2" style="background-color:#fffbeb; color:@clrAmber; border: 1px solid #fef3c7;">Extension</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge rounded-pill ms-2" style="background-color:#f0fdf4; color:@clrEmerald; border: 1px solid #dcfce7;">Regular</span>
+                                            }
+                                        </span>
+                                        <i class="bi bi-arrow-right"></i>
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <h6 class="fw-bold text-uppercase small mb-4" style="color: @clrCyan; letter-spacing: 1px;">Pre-Run Checklist</h6>
+                    
+                    <ul class="list-unstyled">
+                        <li class="d-flex mb-3">
+                            <div class="me-3">
+                                <span class="badge rounded-circle p-2" style="background-color: @clrEmerald + '20'; color: @clrEmerald;">
+                                    <i class="bi bi-check2"></i>
+                                </span>
+                            </div>
+                            <div>
+                                <div class="fw-bold small">Offerings Approved</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">Ensure all department offerings are in "Approved" status.</div>
+                            </div>
+                        </li>
+                        <li class="d-flex mb-3">
+                            <div class="me-3">
+                                <span class="badge rounded-circle p-2" style="background-color: @clrAmber + '20'; color: @clrAmber;">
+                                    <i class="bi bi-clock"></i>
+                                </span>
+                            </div>
+                            <div>
+                                <div class="fw-bold small">Availability Locked</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">Instructors should have completed their availability entries.</div>
+                            </div>
+                        </li>
+                        <li class="d-flex mb-3">
+                            <div class="me-3">
+                                <span class="badge rounded-circle p-2" style="background-color: @clrIndigo + '20'; color: @clrIndigo;">
+                                    <i class="bi bi-building"></i>
+                                </span>
+                            </div>
+                            <div>
+                                <div class="fw-bold small">Room Capacities</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">Verify room sizes match expected section enrollments.</div>
+                            </div>
+                        </li>
+                    </ul>
+
+                    <div class="mt-4 p-3 rounded-3" style="background-color: #fffbeb; border: 1px solid @clrAmber + '40';">
+                        <div class="d-flex">
+                            <i class="bi bi-info-circle-fill me-2" style="color: @clrAmber;"></i>
+                            <p class="small mb-0" style="color: #92400e;">
+                                <strong>Pro-Tip:</strong> Clearing the grid will not delete approved course offerings, only the specific time-room assignments.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,247 @@
+@* @model ScheduleCentral.Models.ViewModels.ManageBatchViewModel
+@{
+    ViewData["Title"] = "Manage Batch";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+
+    <h2>@Model.YearLevelName – @Model.BatchName</h2>
+    <h5 class="text-muted">@Model.Semester Semester</h5>
+
+    <div class="card shadow-sm p-3 mt-3">
+
+        <div class="d-flex justify-content-between">
+            <h5>Courses in this Batch</h5>
+
+            <a asp-action="AddCourseToBatch"
+                asp-route-batchId="@Model.BatchId"
+                class="btn btn-primary btn-sm">+ Add Course</a>
+        </div>
+
+        <hr />
+
+        @if (!Model.Courses.Any())
+        {
+            <div class="alert alert-info">No courses added yet.</div>
+        }
+        else
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Course</th>
+                        <th>Contact Hours</th>
+                        <th>Room Types</th>
+                        <th>Instructor</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var c in Model.Courses)
+                    {
+                        <tr>
+                            <td>@c.CourseName</td>
+                            <td>@c.ContactHours</td>
+                            <td>
+                                @foreach (var rt in c.RoomTypes)
+                                {
+                                    <span class="badge bg-info text-dark me-1">
+                                        @rt.TypeName (@rt.HoursPerWeek h/w)
+                                    </span>
+                                }
+                            </td>
+                            <td>@c.InstructorName</td>
+
+                            <td>
+                                <a asp-action="EditCourseInBatch"
+                                    asp-route-id="@c.SectionId"
+                                    class="btn btn-outline-primary btn-sm">Edit</a>
+
+                                    <a asp-action="DeleteCourseFromBatch"
+                                    asp-route-id="@c.SectionId"
+                                    class="btn btn-danger btn-sm">Delete</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <a asp-action="ManageBatches"
+            asp-route-offeringId="@Model.OfferingId"
+            asp-route-yearLevelId="@Model.YearLevelId"
+            class="btn btn-secondary btn-sm">Back</a>
+
+    </div>
+</div> *@
+@model ScheduleCentral.Models.ViewModels.ManageBatchViewModel
+@using ScheduleCentral.Models.ViewModels
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Manage Batch";
+}
+
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-0">@Model.BatchName <small class="text-muted">(@Model.YearLevelName - @Model.Semester)</small></h5>
+                <small class="text-muted">Assign courses, choose instructors and room-type requirements</small>
+            </div>
+            <div>
+                <a asp-action="ManageYearLevels" class="btn btn-outline-secondary btn-sm">Back</a>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div class="mb-4">
+                <h6 class="mb-2">Existing Course Rows</h6>
+                @if (Model.Courses.Any())
+                {
+                    <table class="table table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Course</th><th>Instructor</th><th>Contact Hrs</th><th>Room Types</th><th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach(var c in Model.Courses)
+                            {
+                                <tr>
+                                    <td>@c.CourseName</td>
+                                    <td>@c.InstructorName</td>
+                                    <td>@c.ContactHours</td>
+                                    <td>
+                                        @foreach(var rt in c.RoomTypes) {
+                                            <span class="badge bg-secondary me-1">@rt.TypeName (@rt.HoursPerWeek)h</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <a class="btn btn-sm btn-outline-primary me-1" href="#">Edit</a>
+                                        <a class="btn btn-sm btn-outline-danger" href="#">Delete</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <div class="text-muted">No course rows yet. Add below.</div>
+                }
+            </div>
+
+            <hr />
+
+            <h6>Add Course to Batch</h6>
+            <form id="addCourseForm" class="row g-3">
+                <input type="hidden" id="batchId" value="@Model.BatchId" />
+                <div class="col-md-5">
+                    <label class="form-label">Course</label>
+                    <select id="courseId" class="form-select">
+                        <option value="">-- Select Course --</option>
+                        @* Populated by controller via ViewBag.Courses *@
+                        @foreach (var c in (IEnumerable<SelectListItem>)ViewBag.Courses)
+                        {
+                            <option value="@c.Value">@c.Text</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Instructor (optional)</label>
+                    <select id="instructorId" class="form-select">
+                        <option value="">-- Unassigned --</option>
+                        @foreach(var it in (IEnumerable<SelectListItem>)ViewBag.Instructors)
+                        { 
+                            <option value="@it.Value" selected="@(it.Disabled ? "disabled" : "")">@it.Text</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Contact Hours (auto)</label>
+                    <input id="contactHours" class="form-control" readonly />
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">Room Type Requirements (select one or more)</label>
+                    <div class="row g-2">
+                        @foreach(var rt in (IEnumerable<ScheduleCentral.Models.RoomType>)ViewBag.RoomTypes)
+                        {
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input rt-check" type="checkbox" value="@rt.Id" id="rt_@rt.Id" />
+                                    <label class="form-check-label" for="rt_@rt.Id">@rt.Name</label>
+                                    <input class="form-control form-control-sm mt-1 rt-hours" style="display:none" data-rt="@rt.Id" placeholder="hrs/week" type="number" min="1" max="20" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="col-12 text-end mt-2">
+                    <button type="button" class="btn btn-primary" onclick="submitAddToBatch()">Add to Batch</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // fetch course contact hours on selection (simple approach: server can provide mapping via ViewBag)
+    const courseHoursMap = {};
+    @* If your controller provided CourseHours mapping in ViewBag.CourseHours { id: hours } *@
+    @if (ViewBag.CourseHours != null) {
+        foreach (var kv in (IDictionary<int,int>)ViewBag.CourseHours) {
+            <text>courseHoursMap["@kv.Key"] = @kv.Value;</text>
+        }
+    }
+
+    document.getElementById('courseId').addEventListener('change', function() {
+        const val = this.value;
+        document.getElementById('contactHours').value = courseHoursMap[val] ?? '';
+    });
+
+    document.querySelectorAll('.rt-check').forEach(ch => {
+        ch.addEventListener('change', (e) => {
+            const id = e.target.value;
+            const hrs = document.querySelector('.rt-hours[data-rt="' + id + '"]');
+            if (e.target.checked) hrs.style.display = 'block'; else hrs.style.display = 'none';
+        });
+    });
+
+    function submitAddToBatch() {
+        const batchId = parseInt(document.getElementById('batchId').value);
+        const courseId = parseInt(document.getElementById('courseId').value);
+        const instructorId = document.getElementById('instructorId').value || null;
+        const roomTypeIds = [];
+        const hours = {};
+
+        document.querySelectorAll('.rt-check:checked').forEach(cb => {
+            const id = parseInt(cb.value);
+            roomTypeIds.push(id);
+            const h = document.querySelector('.rt-hours[data-rt="' + id + '"]').value || 0;
+            hours[id] = parseInt(h);
+        });
+
+        if (!courseId) { alert('Select course'); return; }
+
+        fetch('@Url.Action("AddCourseToBatch","CourseOffering")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+            body: JSON.stringify({ BatchId: batchId, CourseId: courseId, InstructorId: instructorId, RoomTypeIds: roomTypeIds, HoursPerRoomType: hours })
+        }).then(r => r.json()).then(j => {
+            if (j.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + (j.error || j.message || 'unknown'));
+            }
+        }).catch(e => alert('Error: ' + e));
+    }
+</script>
+}
+

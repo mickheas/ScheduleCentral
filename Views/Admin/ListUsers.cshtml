@@ -1,0 +1,444 @@
+﻿@* @model IEnumerable<ScheduleCentral.Models.ViewModels.UserListViewModel>
+@{
+    ViewData["Title"] = "User Management";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .card-hover {
+        transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .card-hover:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important;
+    }
+    .table thead th {
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        background: #f8f9fc !important;
+        color: #6c757d !important;
+        border-bottom: 2px solid #e3e6f0;
+    }
+    .table td {
+        font-size: .9rem;
+        vertical-align: middle;
+    }
+    .badge-soft {
+        padding: .45rem .65rem;
+        font-size: .75rem;
+        border-radius: .5rem;
+    }
+</style>
+
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0 text-gray-800">User Management</h1>
+        <p class="text-muted small mb-0">Manage user accounts, roles and activation status.</p>
+    </div>
+
+    <!-- Create User Trigger -->
+    <button type="button"
+            class="btn btn-success shadow-sm"
+            data-bs-toggle="modal"
+            data-bs-target="#userModal"
+            data-url="@Url.Action("GetCreateUserPartial", "Admin")">
+        <i class="bi bi-person-plus me-1"></i> Add New User
+    </button>
+</div>
+
+
+<!-- Search + Filter -->
+<form asp-action="ListUsers" asp-controller="Admin" method="get" class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="input-group shadow-sm">
+            <span class="input-group-text bg-white border-end-0">
+                <i class="bi bi-search text-muted"></i>
+            </span>
+            <input type="text"
+                name="searchQuery"
+                class="form-control border-start-0"
+                placeholder="Search by name or email..."
+                value="@ViewData["CurrentFilter"]" />
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <select name="roleFilter"
+                class="form-select shadow-sm"
+                asp-items="@(ViewData["Roles"] as SelectList)">
+            <option value="">All Roles</option>
+        </select>
+    </div>
+
+    <div class="col-md-2 d-grid">
+        <button type="submit" class="btn btn-primary shadow-sm">Filter</button>
+    </div>
+</form>
+
+
+<!-- Table Card -->
+<div class="card shadow-sm border-0 rounded-3">
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Name</th>
+                        <th>Email</th>
+                        <th>Roles</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                No users found matching your criteria.
+                            </td>
+                        </tr>
+                    }
+
+                    @foreach (var user in Model)
+                    {
+                        <tr>
+                            <td class="ps-4 fw-semibold">@user.FullName</td>
+                            <td>@user.Email</td>
+
+                            <td>
+                                <span class="badge bg-light border text-dark badge-soft">@user.RolesDisplay</span>
+                            </td>
+
+                            <td>
+                                @if (user.IsActive)
+                                {
+                                    <span class="badge-soft bg-success-subtle text-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-soft bg-danger-subtle text-danger">Inactive</span>
+                                }
+                            </td>
+
+                            <td class="text-end pe-4">
+                                <button type="button"
+                                        class="btn btn-outline-primary btn-sm"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#userModal"
+                                        data-url="@Url.Action("GetManageUserPartial", "Admin", new { id = user.Id })">
+                                    <i class="bi bi-gear me-1"></i> Manage
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Modal Container -->
+<div class="modal fade" id="userModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <div class="modal-body text-center p-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        $(function () {
+
+            var modal = $('#userModal');
+
+            // Open & Load Modal Content
+            $('button[data-bs-toggle="modal"]').on('click', function () {
+                var url = $(this).data('url');
+
+                modal.find('.modal-content').html(`
+                    <div class="modal-body text-center p-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                    </div>
+                `);
+
+                $.get(url)
+                    .done(function (data) {
+                        modal.find('.modal-content').html(data);
+
+                        var form = modal.find('form');
+                        if (form.length && $.validator && $.validator.unobtrusive)
+                            $.validator.unobtrusive.parse(form);
+                    })
+                    .fail(function () {
+                        modal.find('.modal-content')
+                            .html('<div class="modal-body text-danger">Failed to load data.</div>');
+                    });
+            });
+
+            // AJAX Form Submission
+            modal.on('submit', 'form', function (e) {
+                e.preventDefault();
+
+                var form = $(this);
+                // Only block submission if unobtrusive validation is actually attached.
+                // Checkbox list binding (SelectedRoles) can otherwise cause valid() to fail incorrectly.
+                if ($.validator && $.validator.unobtrusive && form.data('validator')) {
+                    if (!form.valid()) return;
+                }
+
+                $.ajax({
+                    url: form.attr('action'),
+                    method: form.attr('method'),
+                    data: form.serialize(),
+                    success: function (response) {
+                        if (response.success) {
+                            var modalEl = document.getElementById('userModal');
+                            if (modalEl) {
+                                bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                            }
+                            location.reload();
+                        } else {
+                            modal.find('.modal-content').html(response);
+
+                            var updatedForm = modal.find('form');
+                            if (updatedForm.length)
+                                $.validator.unobtrusive.parse(updatedForm);
+                        }
+                    },
+                    error: function () {
+                        alert('An unexpected error occurred.');
+                    }
+                });
+            });
+
+        });
+    </script>
+} *@
+@model IEnumerable<ScheduleCentral.Models.ViewModels.UserListViewModel>
+@{
+    ViewData["Title"] = "User Management";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    /* Theme Colors */
+    :root {
+        --theme-emerald: #10b981;
+        --theme-amber: #f59e0b;
+        --theme-indigo: #6366f1;
+        --theme-cyan: #06b6d4;
+    }
+
+    .table thead th {
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        background: #f8f9fc !important;
+        color: #64748b !important;
+        border-bottom: 2px solid #e3e6f0;
+    }
+
+    .badge-soft {
+        padding: .45rem .65rem;
+        font-size: .72rem;
+        font-weight: 600;
+        border-radius: .5rem;
+    }
+
+    /* Custom Button Overrides */
+    .btn-emerald { background-color: var(--theme-emerald); color: white; border: none; }
+    .btn-emerald:hover { background-color: #0d9488; color: white; }
+    
+    .btn-indigo { background-color: var(--theme-indigo); color: white; border: none; }
+    .btn-indigo:hover { background-color: #4f46e5; color: white; }
+
+    .btn-outline-amber { color: var(--theme-amber); border-color: var(--theme-amber); }
+    .btn-outline-amber:hover { background-color: var(--theme-amber); color: white; }
+
+    .text-cyan { color: var(--theme-cyan) !important; }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0 text-gray-800">User Management</h1>
+        <p class="text-muted small mb-0">Manage user accounts, roles and activation status.</p>
+    </div>
+
+    <button type="button"
+            class="btn btn-emerald shadow-sm px-4"
+            data-bs-toggle="modal"
+            data-bs-target="#userModal"
+            data-url="@Url.Action("GetCreateUserPartial", "Admin")">
+        <i class="bi bi-person-plus-fill me-1"></i> Add New User
+    </button>
+</div>
+
+<form asp-action="ListUsers" asp-controller="Admin" method="get" class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="input-group shadow-sm">
+            <span class="input-group-text bg-white border-end-0">
+                <i class="bi bi-search text-cyan"></i>
+            </span>
+            <input type="text"
+                   name="searchQuery"
+                   class="form-control border-start-0"
+                   placeholder="Search by name or email..."
+                   value="@ViewData["CurrentFilter"]" />
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <select name="roleFilter"
+                class="form-select shadow-sm"
+                asp-items="@(ViewData["Roles"] as SelectList)">
+            <option value="">All Roles</option>
+        </select>
+    </div>
+
+    <div class="col-md-2 d-grid">
+        <button type="submit" class="btn btn-indigo shadow-sm">Filter</button>
+    </div>
+</form>
+
+<div class="card shadow-sm border-0 rounded-3">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Name</th>
+                        <th>Email</th>
+                        <th>Roles</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="bi bi-info-circle me-1"></i> No users found matching your criteria.
+                            </td>
+                        </tr>
+                    }
+
+                    @foreach (var user in Model)
+                    {
+                        <tr>
+                            <td class="ps-4 fw-bold text-dark">@user.FullName</td>
+                            <td class="text-muted">@user.Email</td>
+                            <td>
+                                <span class="badge-soft" style="background-color: #ecfeff; color: var(--theme-cyan); border: 1px solid #cffafe;">
+                                    <i class="bi bi-shield-lock me-1"></i> @user.RolesDisplay
+                                </span>
+                            </td>
+                            <td>
+                                @if (user.IsActive)
+                                {
+                                    <span class="badge-soft bg-success-subtle text-success">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Active
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge-soft bg-danger-subtle text-danger">
+                                        <i class="bi bi-x-circle-fill me-1"></i> Inactive
+                                    </span>
+                                }
+                            </td>
+                            <td class="text-end pe-4">
+                                <button type="button"
+                                        class="btn btn-outline-amber btn-sm px-3"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#userModal"
+                                        data-url="@Url.Action("GetManageUserPartial", "Admin", new { id = user.Id })">
+                                    <i class="bi bi-sliders me-1"></i> Manage
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="userModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body text-center p-5">
+                <div class="spinner-border text-cyan" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(function () {
+            var modal = $('#userModal');
+
+            $('button[data-bs-toggle="modal"]').on('click', function () {
+                var url = $(this).data('url');
+                modal.find('.modal-content').html(`
+                    <div class="modal-body text-center p-5">
+                        <div class="spinner-border text-cyan" role="status"></div>
+                    </div>
+                `);
+
+                $.get(url).done(function (data) {
+                    modal.find('.modal-content').html(data);
+                    var form = modal.find('form');
+                    if (form.length && $.validator && $.validator.unobtrusive)
+                        $.validator.unobtrusive.parse(form);
+                }).fail(function () {
+                    modal.find('.modal-content').html('<div class="modal-body text-danger">Error loading data.</div>');
+                });
+            });
+
+            modal.on('submit', 'form', function (e) {
+                e.preventDefault();
+                var form = $(this);
+                if ($.validator && $.validator.unobtrusive && form.data('validator') && !form.valid()) return;
+
+                $.ajax({
+                    url: form.attr('action'),
+                    method: form.attr('method'),
+                    data: form.serialize(),
+                    success: function (response) {
+                        if (response.success) {
+                            bootstrap.Modal.getOrCreateInstance(document.getElementById('userModal')).hide();
+                            location.reload();
+                        } else {
+                            modal.find('.modal-content').html(response);
+                            var updatedForm = modal.find('form');
+                            if (updatedForm.length) $.validator.unobtrusive.parse(updatedForm);
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+}

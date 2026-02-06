@@ -1,0 +1,186 @@
+@model ScheduleCentral.Models.ViewModels.ScheduleMeetingsHistoryViewModel
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Schedule Meetings History";
+
+    var clrIndigo = "#4f46e5";
+    var clrEmerald = "#10b981";
+    var clrCyan = "#06b6d4";
+    var clrAmber = "#f59e0b";
+
+    var totalPages = (int)Math.Ceiling((double)Math.Max(0, Model.TotalCount) / Math.Max(1, Model.PageSize));
+    if (totalPages < 1) totalPages = 1;
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1 fw-bold" style="color:@clrIndigo;">Schedule Meeting History</h1>
+            <div class="text-muted small">Each row is an individual meeting from approved/rejected publications.</div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4" style="border-top: 4px solid @clrCyan !important;">
+        <div class="card-body p-4">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Academic Year</label>
+                    <select class="form-select" name="academicYear">
+                        @if (Model.AcademicYears == null || Model.AcademicYears.Count == 0)
+                        {
+                            <option value="@Model.AcademicYear" selected>@Model.AcademicYear</option>
+                        }
+                        else
+                        {
+                            @foreach (var y in Model.AcademicYears)
+                            {
+                                <option value="@y" selected="@(string.Equals(Model.AcademicYear, y, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@y</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label small text-muted">Semester</label>
+                    <select class="form-select" name="semester">
+                        @if (Model.Semesters == null || Model.Semesters.Count == 0)
+                        {
+                            <option value="@Model.Semester" selected>@Model.Semester</option>
+                        }
+                        else
+                        {
+                            @foreach (var s in Model.Semesters)
+                            {
+                                <option value="@s" selected="@(string.Equals(Model.Semester, s, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@s</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Department</label>
+                    <select class="form-select" name="department">
+                        <option value="">All</option>
+                        @if (Model.Departments != null)
+                        {
+                            @foreach (var d in Model.Departments)
+                            {
+                                <option value="@d" selected="@(string.Equals(Model.Department, d, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@d</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label small text-muted">Instructor</label>
+                    <select class="form-select" name="instructorId">
+                        <option value="">All</option>
+                        @if (Model.Instructors != null)
+                        {
+                            @foreach (var i in Model.Instructors)
+                            {
+                                <option value="@i.Id" selected="@(string.Equals(Model.InstructorId, i.Id, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@i.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label small text-muted">Room</label>
+                    <select class="form-select" name="roomId">
+                        <option value="">All</option>
+                        @if (Model.Rooms != null)
+                        {
+                            @foreach (var r in Model.Rooms)
+                            {
+                                <option value="@r.Id" selected="@(Model.RoomId.HasValue && Model.RoomId.Value == r.Id ? "selected" : null)">@r.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <input type="hidden" name="page" value="1" />
+                <input type="hidden" name="pageSize" value="@Model.PageSize" />
+
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <a class="btn btn-outline-secondary" href="@Url.Action("MeetingsHistory", "Schedule")">Reset</a>
+                    <button type="submit" class="btn text-white fw-bold" style="background-color:@clrIndigo;">Apply Filters</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="border-top: 4px solid @clrIndigo !important;">
+        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+            <div>
+                <span class="fw-bold">Results</span>
+                <span class="text-muted small ms-2">@Model.TotalCount total</span>
+            </div>
+            <div class="text-muted small">Page @Model.Page of @totalPages</div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Department</th>
+                        <th>Batch</th>
+                        <th>Section</th>
+                        <th>Course</th>
+                        <th>Instructor</th>
+                        <th>Room</th>
+                        <th>When</th>
+                        <th style="width: 120px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Meetings == null || Model.Meetings.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">No meetings found for the selected filters.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var m in Model.Meetings)
+                        {
+                            <tr>
+                                <td>@m.Department</td>
+                                <td>@m.Batch</td>
+                                <td>@m.Section</td>
+                                <td>@m.Course</td>
+                                <td>@m.Instructor</td>
+                                <td>@m.Room</td>
+                                <td>
+                                    <span class="fw-semibold">@m.DayLabel</span>
+                                    <span class="text-muted">@m.TimeRange</span>
+                                </td>
+                                <td class="text-end">
+                                    @if (m.SectionId.HasValue)
+                                    {
+                                        <a class="btn btn-sm btn-outline-primary" asp-controller="Schedule" asp-action="Grid" asp-route-sectionId="@m.SectionId" asp-route-publicationId="@m.PublicationId" asp-route-returnUrl="@Context.Request.Path@Context.Request.QueryString">View</a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-body border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="text-muted small">
+                Showing @Model.PageSize per page.
+            </div>
+            <div class="d-flex gap-2">
+                @{
+                    var prev = Math.Max(1, Model.Page - 1);
+                    var next = Math.Min(totalPages, Model.Page + 1);
+                }
+                <a class="btn btn-sm btn-outline-secondary @(Model.Page <= 1 ? "disabled" : "")" href="@Url.Action("MeetingsHistory", "Schedule", new { academicYear = Model.AcademicYear, semester = Model.Semester, department = Model.Department, instructorId = Model.InstructorId, roomId = Model.RoomId, page = prev, pageSize = Model.PageSize })">Prev</a>
+                <a class="btn btn-sm btn-outline-secondary @(Model.Page >= totalPages ? "disabled" : "")" href="@Url.Action("MeetingsHistory", "Schedule", new { academicYear = Model.AcademicYear, semester = Model.Semester, department = Model.Department, instructorId = Model.InstructorId, roomId = Model.RoomId, page = next, pageSize = Model.PageSize })">Next</a>
+            </div>
+        </div>
+    </div>
+</div>

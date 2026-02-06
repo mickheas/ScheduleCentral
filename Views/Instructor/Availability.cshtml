@@ -1,0 +1,221 @@
+@* @model ScheduleCentral.Controllers.InstructorAvailabilityViewModel
+@{
+    ViewData["Title"] = "My Availability";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var allowed = ScheduleCentral.Controllers.InstructorController.GetAllowedSlots().ToList();
+
+    string DisplaySlot(string slot)
+    {
+        var parts = slot.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length != 2) return slot;
+
+        var day = parts[0] switch
+        {
+            "Mon" => "Monday",
+            "Tue" => "Tuesday",
+            "Wed" => "Wednesday",
+            "Thu" => "Thursday",
+            "Fri" => "Friday",
+            "Sat" => "Saturday",
+            "Sun" => "Sunday",
+            _ => parts[0]
+        };
+
+        var time = parts[1] == "AM" ? "Before noon" : parts[1] == "PM" ? "After noon" : parts[1] == "Night" ? "Night" : parts[1];
+        return $"{day} — {time}";
+    }
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+<div class="card shadow-sm">
+    <div class="card-header">
+        <h5 class="mb-0">My Weekly Availability</h5>
+        <small class="text-muted">Select the time slots you are available to teach (Mon–Sun, Before/After noon, Night).</small>
+    </div>
+    <div class="card-body">
+        <form asp-action="Availability" method="post">
+            @Html.AntiForgeryToken()
+
+            @if (Model.IsLocked)
+            {
+                <div class="alert alert-warning">
+                    Availability editing is locked for the active term. Submit a change request to the Program Officer.
+                </div>
+            }
+
+            <div class="mb-3">
+                <label class="form-label">Available Slots</label>
+                <div class="row g-2">
+                    @foreach (var slot in allowed)
+                    {
+                        var isChecked = Model.SelectedSlots.Contains(slot, StringComparer.OrdinalIgnoreCase);
+                        <div class="col-12 col-md-6 col-lg-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="SelectedSlots" value="@slot"
+                                       checked="@(isChecked ? "checked" : null)" disabled="@(Model.IsLocked ? "disabled" : null)" />
+                                <label class="form-check-label">@DisplaySlot(slot)</label>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="form-text">Select all slots you are available for.</div>
+            </div>
+
+            <div class="text-end">
+                @if (!Model.IsLocked)
+                {
+                    <button type="submit" class="btn btn-primary">Save Availability</button>
+                }
+            </div>
+        </form>
+    </div>
+</div> *@
+@model ScheduleCentral.Controllers.InstructorAvailabilityViewModel
+@{
+    ViewData["Title"] = "My Availability";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var days = new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+    var periods = new[] { "AM", "PM", "Night" };
+
+    string GetPeriodLabel(string p) => p switch { 
+        "AM" => "Morning (Before Noon)", 
+        "PM" => "Afternoon", 
+        "Night" => "Night", 
+        _ => p 
+    };
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h4 mb-1 fw-bold">Weekly Teaching Availability</h2>
+            <p class="text-muted mb-0">Define the time slots you are available for assignments.</p>
+        </div>
+        @if (Model.IsLocked)
+        {
+            <span class="badge bg-warning text-dark p-2 px-3 shadow-sm">
+                <i class="bi bi-lock-fill me-1"></i> Editing Locked
+            </span>
+        }
+    </div>
+
+    @if (Model.IsLocked)
+    {
+        <div class="card border-warning bg-light mb-4 shadow-sm">
+            <div class="card-body py-3 d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle-fill text-warning fs-4 me-3"></i>
+                <div>
+                    <h6 class="mb-0 fw-bold">Schedule is Finalized</h6>
+                    <small>Editing is disabled for the active term. Please contact the Program Officer for manual overrides.</small>
+                </div>
+            </div>
+        </div>
+    }
+
+    <form asp-action="Availability" method="post">
+        @Html.AntiForgeryToken()
+        
+        <div class="card shadow-sm border-0 overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-bordered mb-0 align-middle">
+                    <thead class="bg-light text-center">
+                        <tr>
+                            <th style="width: 15%;" class="py-3 text-muted small uppercase">Time Period</th>
+                            @foreach (var day in days)
+                            {
+                                <th class="py-3 fw-bold">@day</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in periods)
+                        {
+                            <tr>
+                                <td class="ps-4 fw-medium text-secondary bg-light">
+                                    @GetPeriodLabel(p)
+                                </td>
+                                @foreach (var day in days)
+                                {
+                                    var slotValue = $"{day}-{p}";
+                                    var isChecked = Model.SelectedSlots.Contains(slotValue, StringComparer.OrdinalIgnoreCase);
+                                    
+                                    <td class="p-1 text-center">
+                                        <input type="checkbox"
+                                            class="btn-check"
+                                            name="SelectedSlots"
+                                            id="slot-@slotValue"
+                                            value="@slotValue"
+                                            autocomplete="off"
+                                            @(isChecked ? "checked" : "")
+                                            @(Model.IsLocked ? "disabled" : "")>
+                                        
+                                        <label class="btn btn-outline-availability d-block py-3 border-0" for="slot-@slotValue">
+                                            @if(isChecked) {
+                                                <i class="bi bi-check-circle-fill d-block mb-1"></i>
+                                                <small class="fw-bold">Available</small>
+                                            } else {
+                                                <i class="bi bi-circle d-block mb-1 opacity-25"></i>
+                                                <small class="text-muted">Unavailable</small>
+                                            }
+                                        </label>
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            
+            @if (!Model.IsLocked)
+            {
+                <div class="card-footer bg-white border-top-0 p-4 text-end">
+                    <button type="submit" class="btn btn-primary px-5 btn-lg shadow-sm">
+                        <i class="bi bi-save me-2"></i> Save Availability
+                    </button>
+                </div>
+            }
+        </div>
+    </form>
+</div>
+
+<style>
+    /* Custom Styling for Availability Grid */
+    .btn-outline-availability {
+        transition: all 0.2s;
+        border-radius: 4px;
+    }
+    
+    /* Unavailable State */
+    .btn-outline-availability:hover {
+        background-color: #f8f9fa;
+        color: #0d6efd;
+    }
+
+    /* Selected State */
+    .btn-check:checked + .btn-outline-availability {
+        background-color: #e7f1ff;
+        color: #0d6efd;
+        border: 1px solid #0d6efd !important;
+    }
+
+    /* Locked State Styling */
+    .btn-check:disabled + .btn-outline-availability {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .table-bordered > :not(caption) > * > * {
+        border-width: 1px;
+        border-color: #eee;
+    }
+</style>

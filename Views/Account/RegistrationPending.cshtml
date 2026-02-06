@@ -1,0 +1,47 @@
+@* @{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Registration Pending";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+        <h4 class="text-center fw-bold mb-4 text-secondary">Registration Submitted</h4>
+
+        <div class="text-center text-muted mb-3">
+            Your instructor signup request has been received.
+        </div>
+
+        <div class="mb-4">
+            <div class="fw-bold text-secondary mb-2">Next steps:</div>
+            <div class="text-muted">1. Check your email for a link to set your password.</div>
+            <div class="text-muted">2. Wait for an admin to approve your account.</div>
+            <div class="text-muted">3. After approval, you can log in normally.</div>
+        </div>
+
+        <div class="d-grid mb-3">
+            <a class="btn btn-gradient-primary btn-lg fw-bold fs-6" href="@Url.Page("/Account/Login", new { area = "Identity" })" rel="external">Back to Login</a>
+        </div>
+    </div>
+</div> *@
+@{
+    // Make sure this points to the new layout file you just created
+    Layout = "~/Areas/Identity/Pages/Account/Manage/_Layout.cshtml"; 
+    ViewData["Title"] = "Registration Pending";
+}
+
+<h4 class="text-center fw-bold mb-4 text-secondary">Registration Submitted</h4>
+
+<div class="text-center text-secondary mb-4">
+    <p class="mb-0">Your instructor signup request has been received.</p>
+</div>
+
+<div class="mb-4 p-3 rounded bg-light border-0">
+    <div class="fw-bold text-dark mb-2 small text-uppercase">Next steps:</div>
+    <div class="small text-secondary mb-1">1. Check your email for a link to set your password.</div>
+    <div class="small text-secondary mb-1">2. Wait for an admin to approve your account.</div>
+    <div class="small text-secondary">3. After approval, you can log in normally.</div>
+</div>
+
+<div class="d-grid mb-3">
+    <a class="btn btn-gradient-primary btn-lg fw-bold fs-6" href="@Url.Page("/Account/Login", new { area = "Identity" })">Back to Login</a>
+</div>

@@ -1,0 +1,503 @@
+@model ScheduleCentral.Controllers.SwapRequestIndexViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Swap Requests";
+
+    var clrIndigo = "#4f46e5";
+    var clrAmber = "#f59e0b";
+    var lightBg = "#f8fafc";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+        <div>
+            <h1 class="h4 mb-1 fw-bold" style="color:@clrIndigo;">Swap Requests</h1>
+            <div class="text-muted small">
+                @if (Model.IsInstructor)
+                {
+                    <text>Requests you submitted. Create a new request from your weekly schedule.</text>
+                }
+                else
+                {
+                    <text>Review and apply instructor swap requests.</text>
+                }
+            </div>
+        </div>
+        @if (Model.IsInstructor)
+        {
+            <div class="d-flex gap-2">
+                <a class="btn btn-sm btn-outline-primary fw-bold" asp-controller="Instructor" asp-action="MySchedule">
+                    <i class="bi bi-plus-circle me-1"></i> New Swap Request
+                </a>
+            </div>
+        }
+    </div>
+
+    @if (Model.IsInstructor)
+    {
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <div class="card shadow-sm border-0 rounded-4 overflow-hidden" style="border-top: 4px solid @clrIndigo;">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h6 class="mb-0 fw-bold" style="color:@clrIndigo;">Submitted Requests</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle">
+                                <thead style="background-color:@lightBg;">
+                                    <tr>
+                                        <th class="ps-4 small text-uppercase text-muted fw-bold">Meeting</th>
+                                        <th class="small text-uppercase text-muted fw-bold">Details</th>
+                                        <th class="small text-uppercase text-muted fw-bold">Status</th>
+                                        <th class="small text-uppercase text-muted fw-bold text-end pe-4">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @if (Model.SubmittedRequests == null || Model.SubmittedRequests.Count == 0)
+                                {
+                                    <tr><td colspan="4" class="text-center py-5 text-muted small">No requests submitted.</td></tr>
+                                }
+                                else
+                                {
+                                    foreach (var r in Model.SubmittedRequests)
+                                    {
+                                        <tr>
+                                            <td class="ps-4 py-3">
+                                                <div class="fw-bold" style="color:@clrIndigo;">@r.ScheduleMeeting?.Course?.Name</div>
+                                                <div class="text-muted small">@DayLabel(r.ScheduleMeeting?.DayOfWeek) · Slot @r.ScheduleMeeting?.SlotStart (@SlotTimeRange(r.ScheduleMeeting?.SlotStart))</div>
+                                                <div class="mt-1">
+                                                    @if (r.Mode == ScheduleCentral.Models.ScheduleSwapRequestMode.SwapWithInstructor)
+                                                    {
+                                                        <span class="badge rounded-pill" style="background-color:#eef2ff; color:#3730a3; border:1px solid #c7d2fe;">Mode A</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge rounded-pill" style="background-color:#ecfeff; color:#155e75; border:1px solid #a5f3fc;">Mode B</span>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @if (r.Mode == ScheduleCentral.Models.ScheduleSwapRequestMode.MoveToEmptySlot)
+                                                {
+                                                    <div class="text-muted small">Move to: @DayLabel(r.TargetDayOfWeek) · Slot @r.TargetSlotStart (@SlotTimeRange(r.TargetSlotStart))</div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="text-muted small">Swap with: @r.PeerInstructor?.FullName</div>
+                                                    <div class="text-muted small">Peer: @DayLabel(r.PeerScheduleMeeting?.DayOfWeek) · Slot @r.PeerScheduleMeeting?.SlotStart (@SlotTimeRange(r.PeerScheduleMeeting?.SlotStart))</div>
+                                                }
+                                            </td>
+                                            <td>
+                                                <span class="badge rounded-pill px-3 py-2" style="background-color:#f1f5f9; color:#64748b; border:1px solid #e2e8f0;">@r.Status</span>
+                                                @if (!string.IsNullOrWhiteSpace(r.Feedback))
+                                                {
+                                                    <div class="text-muted small mt-1">@r.Feedback</div>
+                                                }
+                                            </td>
+                                            <td class="text-end pe-4">
+                                                @if (r.Status == ScheduleCentral.Models.ScheduleSwapRequestStatus.PendingProgramOfficerReview
+                                                   || r.Status == ScheduleCentral.Models.ScheduleSwapRequestStatus.PendingPeerReview
+                                                   || r.Status == ScheduleCentral.Models.ScheduleSwapRequestStatus.PendingFinalProgramOfficerApproval)
+                                                {
+                                                    <form asp-controller="SwapRequest" asp-action="Cancel" method="post" onsubmit="return confirm('Cancel this request?');" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="id" value="@r.Id" />
+                                                        <button type="submit" class="btn btn-sm btn-outline-secondary fw-bold">Cancel</button>
+                                                    </form>
+                                                }
+                                                else
+                                                {
+                                                    <form asp-controller="SwapRequest" asp-action="Delete" method="post" onsubmit="return confirm('Delete this request from history?');" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="id" value="@r.Id" />
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger fw-bold">Delete</button>
+                                                    </form>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="card shadow-sm border-0 rounded-4 overflow-hidden" style="border-top: 4px solid @clrAmber;">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h6 class="mb-0 fw-bold" style="color:@clrAmber;">Requests Awaiting Your Decision</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle">
+                                <thead style="background-color:@lightBg;">
+                                    <tr>
+                                        <th class="ps-4 small text-uppercase text-muted fw-bold">From</th>
+                                        <th class="small text-uppercase text-muted fw-bold text-end pe-4">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @if (Model.IncomingPeerRequests == null || Model.IncomingPeerRequests.Count == 0)
+                                {
+                                    <tr><td colspan="2" class="text-center py-5 text-muted small">No incoming requests.</td></tr>
+                                }
+                                else
+                                {
+                                    foreach (var r in Model.IncomingPeerRequests)
+                                    {
+                                        <tr>
+                                            <td class="ps-4 py-3">
+                                                <div class="fw-bold" style="color:@clrIndigo;">@r.RequesterInstructor?.FullName</div>
+                                                <div class="text-muted small">Requester: @DayLabel(r.ScheduleMeeting?.DayOfWeek) · Slot @r.ScheduleMeeting?.SlotStart (@SlotTimeRange(r.ScheduleMeeting?.SlotStart))</div>
+                                                <div class="text-muted small">Yours: @DayLabel(r.PeerScheduleMeeting?.DayOfWeek) · Slot @r.PeerScheduleMeeting?.SlotStart (@SlotTimeRange(r.PeerScheduleMeeting?.SlotStart))</div>
+                                            </td>
+                                            <td class="text-end pe-4">
+                                                <div class="d-flex justify-content-end gap-2">
+                                                    <form asp-controller="SwapRequest" asp-action="PeerAgree" method="post">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="id" value="@r.Id" />
+                                                        <button type="submit" class="btn btn-sm btn-success fw-bold">Agree</button>
+                                                    </form>
+                                                    <form asp-controller="SwapRequest" asp-action="PeerDisagree" method="post">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="id" value="@r.Id" />
+                                                        <input type="text" name="feedback" class="form-control form-control-sm" placeholder="Reason" style="max-width: 160px;" />
+                                                        <button type="submit" class="btn btn-sm fw-bold" style="background-color:@clrAmber; color:white;">Disagree</button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        var pendingPo = (Model.Requests ?? new List<ScheduleCentral.Models.ScheduleSwapRequest>())
+            .Where(r => r.Status == ScheduleCentral.Models.ScheduleSwapRequestStatus.PendingProgramOfficerReview)
+            .ToList();
+
+        var pendingPeer = (Model.Requests ?? new List<ScheduleCentral.Models.ScheduleSwapRequest>())
+            .Where(r => r.Status == ScheduleCentral.Models.ScheduleSwapRequestStatus.PendingPeerReview)
+            .ToList();
+
+        var pendingFinal = (Model.Requests ?? new List<ScheduleCentral.Models.ScheduleSwapRequest>())
+            .Where(r => r.Status == ScheduleCentral.Models.ScheduleSwapRequestStatus.PendingFinalProgramOfficerApproval)
+            .ToList();
+
+        var history = (Model.Requests ?? new List<ScheduleCentral.Models.ScheduleSwapRequest>())
+            .Where(r => r.Status != ScheduleCentral.Models.ScheduleSwapRequestStatus.PendingProgramOfficerReview
+                        && r.Status != ScheduleCentral.Models.ScheduleSwapRequestStatus.PendingPeerReview
+                        && r.Status != ScheduleCentral.Models.ScheduleSwapRequestStatus.PendingFinalProgramOfficerApproval)
+            .ToList();
+
+        <div class="row g-4">
+            <div class="col-12">
+                <div class="card shadow-sm border-0 rounded-4 overflow-hidden" style="border-top: 4px solid @clrIndigo;">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h6 class="mb-0 fw-bold" style="color:@clrIndigo;">Pending Program Officer Review</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle">
+                                <thead style="background-color:@lightBg;">
+                                    <tr>
+                                        <th class="ps-4 small text-uppercase text-muted fw-bold">Requester</th>
+                                        <th class="small text-uppercase text-muted fw-bold">Mode</th>
+                                        <th class="small text-uppercase text-muted fw-bold">Request</th>
+                                        <th class="small text-uppercase text-muted fw-bold">Status</th>
+                                        <th class="small text-uppercase text-muted fw-bold text-end pe-4">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @if (pendingPo.Count == 0)
+                                {
+                                    <tr><td colspan="5" class="text-center py-5 text-muted small">No requests waiting for Program Officer review.</td></tr>
+                                }
+                                else
+                                {
+                                    foreach (var r in pendingPo)
+                                    {
+                                        <tr>
+                                            <td class="ps-4 py-3">
+                                                <div class="fw-bold" style="color:@clrIndigo;">@r.RequesterInstructor?.FullName</div>
+                                                <div class="text-muted small">@r.ScheduleMeeting?.Course?.Name</div>
+                                                <div class="text-muted small">@DayLabel(r.ScheduleMeeting?.DayOfWeek) · Slot @r.ScheduleMeeting?.SlotStart (@SlotTimeRange(r.ScheduleMeeting?.SlotStart))</div>
+                                            </td>
+                                            <td>
+                                                @if (r.Mode == ScheduleCentral.Models.ScheduleSwapRequestMode.SwapWithInstructor)
+                                                {
+                                                    <span class="badge rounded-pill" style="background-color:#eef2ff; color:#3730a3; border:1px solid #c7d2fe;">Mode A</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge rounded-pill" style="background-color:#ecfeff; color:#155e75; border:1px solid #a5f3fc;">Mode B</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (r.Mode == ScheduleCentral.Models.ScheduleSwapRequestMode.MoveToEmptySlot)
+                                                {
+                                                    <div class="text-muted small">Move to: @DayLabel(r.TargetDayOfWeek) · Slot @r.TargetSlotStart (@SlotTimeRange(r.TargetSlotStart))</div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="text-muted small">Swap with: @r.PeerInstructor?.FullName</div>
+                                                    <div class="text-muted small">Requester: @DayLabel(r.ScheduleMeeting?.DayOfWeek) · Slot @r.ScheduleMeeting?.SlotStart (@SlotTimeRange(r.ScheduleMeeting?.SlotStart))</div>
+                                                    <div class="text-muted small">Peer: @DayLabel(r.PeerScheduleMeeting?.DayOfWeek) · Slot @r.PeerScheduleMeeting?.SlotStart (@SlotTimeRange(r.PeerScheduleMeeting?.SlotStart))</div>
+                                                }
+                                            </td>
+                                            <td>
+                                                <span class="badge rounded-pill px-3 py-2" style="background-color:#f1f5f9; color:#64748b; border:1px solid #e2e8f0;">@r.Status</span>
+                                            </td>
+                                            <td class="text-end pe-4">
+                                                <div class="d-flex justify-content-end gap-2">
+                                                    @if (r.Mode == ScheduleCentral.Models.ScheduleSwapRequestMode.SwapWithInstructor)
+                                                    {
+                                                        <form asp-controller="SwapRequest" asp-action="ForwardToPeer" method="post" onsubmit="return confirm('Forward to peer instructor?');">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="id" value="@r.Id" />
+                                                            <button type="submit" class="btn btn-sm btn-outline-primary fw-bold">Forward</button>
+                                                        </form>
+                                                    }
+                                                    else
+                                                    {
+                                                        <form asp-controller="SwapRequest" asp-action="Approve" method="post" onsubmit="return confirm('Approve this request? A new draft schedule workspace will be created.');">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="id" value="@r.Id" />
+                                                            <button type="submit" class="btn btn-sm btn-success fw-bold">Approve</button>
+                                                        </form>
+                                                    }
+
+                                                    <form asp-controller="SwapRequest" asp-action="Reject" method="post" onsubmit="return confirm('Reject this request? Feedback is required.');">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="id" value="@r.Id" />
+                                                        <input type="text" name="feedback" class="form-control form-control-sm" placeholder="Feedback" style="max-width: 200px;" />
+                                                        <button type="submit" class="btn btn-sm fw-bold" style="background-color:@clrAmber; color:white;">Reject</button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="card shadow-sm border-0 rounded-4 overflow-hidden" style="border-top: 4px solid @clrAmber;">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h6 class="mb-0 fw-bold" style="color:@clrAmber;">Pending Peer Review</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle">
+                                <thead style="background-color:@lightBg;">
+                                    <tr>
+                                        <th class="ps-4 small text-uppercase text-muted fw-bold">Requester</th>
+                                        <th class="small text-uppercase text-muted fw-bold">Request</th>
+                                        <th class="small text-uppercase text-muted fw-bold">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @if (pendingPeer.Count == 0)
+                                {
+                                    <tr><td colspan="3" class="text-center py-5 text-muted small">No requests awaiting peer review.</td></tr>
+                                }
+                                else
+                                {
+                                    foreach (var r in pendingPeer)
+                                    {
+                                        <tr>
+                                            <td class="ps-4 py-3">
+                                                <div class="fw-bold" style="color:@clrIndigo;">@r.RequesterInstructor?.FullName</div>
+                                                <div class="text-muted small">@r.ScheduleMeeting?.Course?.Name</div>
+                                                <div class="text-muted small">@DayLabel(r.ScheduleMeeting?.DayOfWeek) · Slot @r.ScheduleMeeting?.SlotStart (@SlotTimeRange(r.ScheduleMeeting?.SlotStart))</div>
+                                            </td>
+                                            <td>
+                                                <div class="text-muted small">Swap with: @r.PeerInstructor?.FullName</div>
+                                                <div class="text-muted small">Requester: @DayLabel(r.ScheduleMeeting?.DayOfWeek) · Slot @r.ScheduleMeeting?.SlotStart (@SlotTimeRange(r.ScheduleMeeting?.SlotStart))</div>
+                                                <div class="text-muted small">Peer: @DayLabel(r.PeerScheduleMeeting?.DayOfWeek) · Slot @r.PeerScheduleMeeting?.SlotStart (@SlotTimeRange(r.PeerScheduleMeeting?.SlotStart))</div>
+                                            </td>
+                                            <td>
+                                                <span class="badge rounded-pill px-3 py-2" style="background-color:#fef3c7; color:#92400e; border:1px solid #fde68a;">Waiting peer response</span>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="card shadow-sm border-0 rounded-4 overflow-hidden" style="border-top: 4px solid @clrIndigo;">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h6 class="mb-0 fw-bold" style="color:@clrIndigo;">Pending Final Program Officer Approval</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle">
+                                <thead style="background-color:@lightBg;">
+                                    <tr>
+                                        <th class="ps-4 small text-uppercase text-muted fw-bold">Requester</th>
+                                        <th class="small text-uppercase text-muted fw-bold">Request</th>
+                                        <th class="small text-uppercase text-muted fw-bold">Status</th>
+                                        <th class="small text-uppercase text-muted fw-bold text-end pe-4">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @if (pendingFinal.Count == 0)
+                                {
+                                    <tr><td colspan="4" class="text-center py-5 text-muted small">No requests waiting for final approval.</td></tr>
+                                }
+                                else
+                                {
+                                    foreach (var r in pendingFinal)
+                                    {
+                                        <tr>
+                                            <td class="ps-4 py-3">
+                                                <div class="fw-bold" style="color:@clrIndigo;">@r.RequesterInstructor?.FullName</div>
+                                                <div class="text-muted small">@r.ScheduleMeeting?.Course?.Name</div>
+                                                <div class="text-muted small">@DayLabel(r.ScheduleMeeting?.DayOfWeek) · Slot @r.ScheduleMeeting?.SlotStart (@SlotTimeRange(r.ScheduleMeeting?.SlotStart))</div>
+                                            </td>
+                                            <td>
+                                                <div class="text-muted small">Swap with: @r.PeerInstructor?.FullName</div>
+                                                <div class="text-muted small">Requester: @DayLabel(r.ScheduleMeeting?.DayOfWeek) · Slot @r.ScheduleMeeting?.SlotStart (@SlotTimeRange(r.ScheduleMeeting?.SlotStart))</div>
+                                                <div class="text-muted small">Peer: @DayLabel(r.PeerScheduleMeeting?.DayOfWeek) · Slot @r.PeerScheduleMeeting?.SlotStart (@SlotTimeRange(r.PeerScheduleMeeting?.SlotStart))</div>
+                                                <div class="text-muted small">Peer decision: @r.PeerDecision</div>
+                                            </td>
+                                            <td>
+                                                <span class="badge rounded-pill px-3 py-2" style="background-color:#f1f5f9; color:#64748b; border:1px solid #e2e8f0;">@r.Status</span>
+                                            </td>
+                                            <td class="text-end pe-4">
+                                                <div class="d-flex justify-content-end gap-2">
+                                                    <form asp-controller="SwapRequest" asp-action="Approve" method="post" onsubmit="return confirm('Approve this request? A new draft schedule workspace will be created.');">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="id" value="@r.Id" />
+                                                        <button type="submit" class="btn btn-sm btn-success fw-bold">Approve</button>
+                                                    </form>
+                                                    <form asp-controller="SwapRequest" asp-action="Reject" method="post" onsubmit="return confirm('Reject this request? Feedback is required.');">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="id" value="@r.Id" />
+                                                        <input type="text" name="feedback" class="form-control form-control-sm" placeholder="Feedback" style="max-width: 200px;" />
+                                                        <button type="submit" class="btn btn-sm fw-bold" style="background-color:@clrAmber; color:white;">Reject</button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="card shadow-sm border-0 rounded-4 overflow-hidden" style="border-top: 4px solid #94a3b8;">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h6 class="mb-0 fw-bold" style="color:#475569;">History (Approved / Rejected)</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle">
+                                <thead style="background-color:@lightBg;">
+                                    <tr>
+                                        <th class="ps-4 small text-uppercase text-muted fw-bold">Requester</th>
+                                        <th class="small text-uppercase text-muted fw-bold">Mode</th>
+                                        <th class="small text-uppercase text-muted fw-bold">Status</th>
+                                        <th class="small text-uppercase text-muted fw-bold">Feedback</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @if (history.Count == 0)
+                                {
+                                    <tr><td colspan="4" class="text-center py-5 text-muted small">No completed requests.</td></tr>
+                                }
+                                else
+                                {
+                                    foreach (var r in history)
+                                    {
+                                        <tr>
+                                            <td class="ps-4 py-3">
+                                                <div class="fw-bold" style="color:@clrIndigo;">@r.RequesterInstructor?.FullName</div>
+                                                <div class="text-muted small">@r.ScheduleMeeting?.Course?.Name</div>
+                                                <div class="text-muted small">@DayLabel(r.ScheduleMeeting?.DayOfWeek) · Slot @r.ScheduleMeeting?.SlotStart (@SlotTimeRange(r.ScheduleMeeting?.SlotStart))</div>
+                                            </td>
+                                            <td>
+                                                @if (r.Mode == ScheduleCentral.Models.ScheduleSwapRequestMode.SwapWithInstructor)
+                                                {
+                                                    <span class="badge rounded-pill" style="background-color:#eef2ff; color:#3730a3; border:1px solid #c7d2fe;">Mode A</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge rounded-pill" style="background-color:#ecfeff; color:#155e75; border:1px solid #a5f3fc;">Mode B</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <span class="badge rounded-pill px-3 py-2" style="background-color:#f1f5f9; color:#64748b; border:1px solid #e2e8f0;">@r.Status</span>
+                                            </td>
+                                            <td>
+                                                <div class="text-muted small">@(!string.IsNullOrWhiteSpace(r.Feedback) ? r.Feedback : "-")</div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@functions {
+    string DayLabel(int? dayOfWeek)
+    {
+        return dayOfWeek switch
+        {
+            1 => "Monday",
+            2 => "Tuesday",
+            3 => "Wednesday",
+            4 => "Thursday",
+            5 => "Friday",
+            6 => "Saturday",
+            7 => "Sunday",
+            _ => "-"
+        };
+    }
+
+    string SlotTimeRange(int? slot)
+    {
+        return slot switch
+        {
+            1 => "08:30 – 09:20",
+            2 => "09:30 – 10:20",
+            3 => "10:30 – 11:20",
+            4 => "11:30 – 12:20",
+            5 => "13:30 – 14:20",
+            6 => "14:30 – 15:20",
+            7 => "15:30 – 16:20",
+            8 => "16:30 – 17:20",
+            9 => "18:30 – 19:20",
+            10 => "19:30 – 20:20",
+            _ => ""
+        };
+    }
+}

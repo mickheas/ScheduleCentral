@@ -1,0 +1,144 @@
+@* @model ScheduleCentral.Models.ViewModels.ProgramOfficerIndexViewModel
+
+<h4>Program Officer – Department Offerings (@Model.AcademicYear, Semester @Model.Semester)</h4>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Department</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var o in Model.Offerings)
+    {
+        <tr>
+            <td>@o.Department</td>
+            <td>@o.Status</td>
+            <td>
+                @if (o.HasSubmitted)
+                {
+                    <a asp-action="Review" asp-route-offeringId="@o.OfferingId"
+                       class="btn btn-sm btn-primary">
+                        Review Submitted Offering
+                    </a>
+                }
+                else
+                {
+                    <span class="text-muted">Not submitted</span>
+                }
+            </td>
+        </tr>
+    }
+    </tbody>
+</table> *@
+@model ScheduleCentral.Models.ViewModels.ProgramOfficerIndexViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Pending Offerings";
+
+    // Palette Colors
+    var clrIndigo = "#4f46e5";
+    var clrEmerald = "#10b981";
+    var clrCyan = "#06b6d4";
+    var clrAmber = "#f59e0b";
+    var lightBg = "#f8fafc";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="mb-4">
+        <h1 class="h4 mb-1 fw-bold" style="color: @clrIndigo;">Pending Department Offerings</h1>
+        <p class="text-muted small">
+            Review and approve academic term structures for 
+            <span class="fw-bold" style="color: @clrCyan;">AY @Model.AcademicYear, Semester @Model.Semester</span>
+        </p>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden" style="border-top: 4px solid @clrIndigo !important;">
+        <div class="card-header bg-white py-3 border-0 d-flex align-items-center">
+            <i class="bi bi-inbox-fill me-2" style="color: @clrIndigo;"></i>
+            <h6 class="mb-0 fw-bold text-uppercase small" style="color: @clrIndigo; letter-spacing: 1px;">Current Term Submissions</h6>
+        </div>
+        
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead style="background-color: @lightBg;">
+                        <tr class="small text-uppercase text-muted fw-bold">
+                            <th class="ps-4 py-3">Department Name</th>
+                            <th>Submission Status</th>
+                            <th class="text-end pe-4">Management</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.Offerings == null || !Model.Offerings.Any())
+                    {
+                        <tr>
+                            <td colspan="3" class="text-center py-5">
+                                <i class="bi bi-cloud-check text-muted d-block mb-2" style="font-size: 2.5rem; opacity: 0.3;"></i>
+                                <span class="text-muted">No pending offerings for the current active term.</span>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var o in Model.Offerings)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-bold text-dark">@o.Department</div>
+                                    <div class="text-muted small" style="font-size: 0.75rem;">Term: @Model.AcademicYear</div>
+                                </td>
+                                <td>
+                                    @if (o.HasSubmitted)
+                                    {
+                                        <span class="badge rounded-pill px-3 py-2 fw-medium" 
+                                              style="background-color: #ecfeff; color: @clrCyan; border: 1px solid #cffafe;">
+                                            <i class="bi bi-send-check me-1"></i> @o.Status
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge rounded-pill px-3 py-2 fw-medium" 
+                                              style="background-color: #f8fafc; color: #94a3b8; border: 1px solid #e2e8f0;">
+                                            <i class="bi bi-clock-history me-1"></i> Draft / Not Submitted
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-end pe-4">
+                                    @if (o.HasSubmitted)
+                                    {
+                                        <a asp-action="Review" asp-route-offeringId="@o.OfferingId"
+                                           class="btn btn-sm text-white fw-bold px-4 shadow-sm"
+                                           style="background-color: @clrEmerald; border-radius: 8px;">
+                                            Review Submission
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-light text-muted disabled px-4 border-0" style="border-radius: 8px;">
+                                            Awaiting Submission
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 d-flex gap-4">
+        <div class="d-flex align-items-center gap-2 small text-muted">
+            <span class="rounded-circle" style="width: 10px; height: 10px; background-color: @clrEmerald;"></span> 
+            Actionable Items
+        </div>
+        <div class="d-flex align-items-center gap-2 small text-muted">
+            <span class="rounded-circle" style="width: 10px; height: 10px; background-color: #94a3b8;"></span> 
+            Pending Department
+        </div>
+    </div>
+</div>

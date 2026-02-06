@@ -1,0 +1,126 @@
+@model ScheduleCentral.Models.ViewModels.ProgramOfficerSectionsViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Generated Sections";
+
+    // Palette Colors
+    var clrIndigo = "#4f46e5";
+    var clrEmerald = "#10b981";
+    var clrCyan = "#06b6d4";
+    var clrAmber = "#f59e0b";
+    var lightBg = "#f8fafc";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h4 mb-1 fw-bold" style="color: @clrIndigo;">Generated Sections</h1>
+            <div class="d-flex align-items-center gap-2 text-muted small">
+                <i class="bi bi-building"></i> @Model.Department 
+                <span class="text-secondary opacity-50">|</span> 
+                <i class="bi bi-calendar4-range"></i> AY @Model.AcademicYear 
+                <span class="text-secondary opacity-50">|</span> 
+                <i class="bi bi-info-circle"></i> Sem @Model.Semester
+            </div>
+        </div>
+        <a class="btn btn-sm btn-outline-secondary fw-bold px-3"
+           asp-controller="ProgramOfficer"
+           asp-action="History"
+           asp-route-academicYear="@Model.AcademicYear"
+           asp-route-semester="@Model.Semester"
+           asp-route-department="@Model.Department">
+            <i class="bi bi-arrow-left me-1"></i> Back to History
+        </a>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success border-0 shadow-sm mb-4 d-flex align-items-center" style="background-color: #f0fdf4; color: #166534;">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <div>@TempData["Success"]</div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger border-0 shadow-sm mb-4 d-flex align-items-center" style="background-color: #fef2f2; color: #991b1b;">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <div>@TempData["Error"]</div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden" style="border-top: 4px solid @clrCyan !important;">
+        <div class="card-header bg-white py-3 border-0">
+            <h6 class="mb-0 fw-bold text-uppercase small" style="color: @clrCyan; letter-spacing: 1px;">
+                <i class="bi bi-layers me-2"></i>Section Directory
+            </h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead style="background-color: @lightBg;">
+                        <tr class="small text-uppercase text-muted fw-bold">
+                            <th class="ps-4 py-3">Batch Reference</th>
+                            <th>Section Designation</th>
+                            <th>Enrollment Type</th>
+                            <th class="text-end pe-4">Visual Schedule</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Sections == null || !Model.Sections.Any())
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center py-5">
+                                    <i class="bi bi-search text-muted d-block mb-2" style="font-size: 2rem;"></i>
+                                    <span class="text-muted">No sections found for this offering.</span>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var s in Model.Sections)
+                            {
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="fw-bold" style="color: @clrIndigo;">@s.BatchName</div>
+                                    </td>
+                                    <td>
+                                        <span class="px-2 py-1 rounded fw-bold shadow-sm" style="background-color: #ecfeff; color: @clrCyan; border: 1px solid #cffafe; font-size: 0.85rem;">
+                                            @s.SectionName
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (s.IsExtension)
+                                        {
+                                            <span class="badge rounded-pill fw-medium" style="background-color: #fffbeb; color: @clrAmber; border: 1px solid #fef3c7;">
+                                                Extension
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge rounded-pill fw-medium" style="background-color: #f0fdf4; color: @clrEmerald; border: 1px solid #dcfce7;">
+                                                Regular
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <a class="btn btn-sm text-white fw-bold px-3 shadow-sm"
+                                           style="background-color: @clrIndigo;"
+                                           asp-controller="Schedule"
+                                           asp-action="Grid"
+                                           asp-route-sectionId="@s.SectionId"
+                                           asp-route-offeringId="@Model.OfferingId"
+                                           asp-route-returnUrl="@Url.Action("Sections", "ProgramOfficer", new { offeringId = Model.OfferingId })">
+                                            <i class="bi bi-calendar3 me-2"></i> View Grid
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

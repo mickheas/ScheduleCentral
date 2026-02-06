@@ -1,0 +1,87 @@
+@* @model ScheduleCentral.Controllers.ManageOfferingViewModel
+@{
+    var vm = Model;
+    //Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="modal fade" id="addBatchModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">Add Batch — @Model.AcademicYear</h5>
+            <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+            <div class="mb-3">
+                <label class="form-label">Year Level (numeric)</label>
+                <input id="batchYearLevel" type="number" min="1" class="form-control" value="1" />
+                <div class="form-text">Enter numeric year (1 = 1st year, 2 = 2nd year ...)</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Semester</label>
+                <select id="batchSemester" class="form-select" disabled>
+                    <option value="@Model.Semester" selected>@Model.Semester</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Batch Name (optional)</label>
+                <input id="batchName" type="text" class="form-control" placeholder="E.g. Batch I (auto if left blank)" />
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button class="btn btn-primary" onclick="submitAddBatch()">Add Batch</button>
+        </div>
+        </div>
+    </div>
+</div> *@
+@model ScheduleCentral.Controllers.ManageOfferingViewModel
+@{
+    var vm = Model;
+}
+
+<div class="modal fade" id="addBatchModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0 pt-4 px-4">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark">Add New Batch</h5>
+                    <p class="text-muted small mb-0">For Academic Year @Model.AcademicYear</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body p-4">
+                <div class="p-3 bg-light rounded-3 border mb-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-calendar-event text-primary me-2"></i>
+                        <span class="fw-bold text-dark small text-uppercase">Semester @Model.Semester</span>
+                    </div>
+                    <div class="small text-muted">This batch will be created under the current active semester context.</div>
+                    <select id="batchSemester" class="d-none">
+                        <option value="@Model.Semester" selected>@Model.Semester</option>
+                    </select>
+                </div>
+
+                <div class="form-floating mb-3">
+                    <input id="batchYearLevel" type="number" min="1" max="6" class="form-control fw-bold" value="1" placeholder="Year Level">
+                    <label for="batchYearLevel">Year Level (Numeric)</label>
+                    <div class="form-text ms-1"><i class="bi bi-info-circle me-1"></i>1 = 1st Year, 2 = 2nd Year, etc.</div>
+                </div>
+
+                <div class="form-floating">
+                    <input id="batchName" type="text" class="form-control" placeholder="Batch Name">
+                    <label for="batchName">Batch Name (Optional)</label>
+                    <div class="form-text ms-1">E.g., "Batch A". If left blank, we'll auto-generate it.</div>
+                </div>
+            </div>
+            
+            <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                <button class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-primary rounded-pill px-4 shadow-sm" style="background-color: #4f46e5; border-color: #4f46e5;" onclick="submitAddBatch()">
+                    <i class="bi bi-plus-lg me-1"></i> Add Batch
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

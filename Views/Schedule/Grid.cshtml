@@ -1,0 +1,327 @@
+@model ScheduleCentral.Models.ViewModels.ScheduleGridViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Schedule Grid";
+
+    // Palette Colors
+    var clrIndigo = "#4f46e5";
+    var clrEmerald = "#10b981";
+    var clrCyan = "#06b6d4";
+    var clrAmber = "#f59e0b";
+    var lightBg = "#f8fafc";
+
+    var canEdit = Model.PublicationStatus == ScheduleCentral.Models.SchedulePublicationStatus.DraftGenerated
+        || Model.PublicationStatus == ScheduleCentral.Models.SchedulePublicationStatus.Rejected
+        || (Model.PublicationStatus == ScheduleCentral.Models.SchedulePublicationStatus.Approved
+            && (User.IsInRole("ProgramOfficer") || User.IsInRole("Admin")));
+}
+
+<style>
+    /* Print optimizations to include Sidebar */
+    @@media print {
+        .no-print, .btn { display: none !important; }
+        .row { display: block !important; }
+        .col-lg-8, .col-lg-4 { width: 100% !important; margin-bottom: 30px !important; }
+        .card { border: 1px solid #e2e8f0 !important; box-shadow: none !important; break-inside: avoid; }
+        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+
+    .grid-header-accent {
+        border-top: 4px solid @clrIndigo;
+    }
+
+    .assignment-card {
+        border-top: 4px solid @clrEmerald !important;
+    }
+
+    .sc-drop-cell.sc-drag-over {
+        outline: 2px dashed @clrCyan;
+        outline-offset: -4px;
+        background-color: #ecfeff;
+    }
+
+    .sc-meeting[draggable="true"] {
+        cursor: grab;
+    }
+</style>
+
+<div class="container-fluid px-4 py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h4 mb-1 fw-bold" style="color: @clrIndigo;">Schedule Grid</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0 small text-muted">
+                    <li class="breadcrumb-item">@Model.Department</li>
+                    <li class="breadcrumb-item">@Model.Batch</li>
+                    <li class="breadcrumb-item active" style="color: @clrCyan;">@Model.SectionName (@Model.AcademicYear, Sem @Model.Semester)</li>
+                </ol>
+            </nav>
+
+            @if (Model.PublicationId.HasValue)
+            {
+                <div class="small text-muted">
+                    Publication <strong>#@Model.PublicationId</strong>
+                    @if (Model.PublicationStatus.HasValue)
+                    {
+                        <span class="ms-2">Status: <strong>@Model.PublicationStatus</strong></span>
+                    }
+                    @if (!canEdit)
+                    {
+                        <span class="ms-2">(Editing disabled)</span>
+                    }
+                </div>
+            }
+        </div>
+        <div class="no-print d-flex gap-2">
+            <button onclick="window.print()" class="btn btn-sm fw-bold text-white shadow-sm" style="background-color: @clrCyan;">
+                <i class="bi bi-printer me-1"></i> Print PDF
+            </button>
+            @if (!string.IsNullOrWhiteSpace(Model.ReturnUrl))
+            {
+                <a class="btn btn-sm btn-outline-secondary fw-bold" href="@Model.ReturnUrl">
+                    <i class="bi bi-arrow-left me-1"></i> Back
+                </a>
+            }
+            else if (Model.OfferingId.HasValue)
+            {
+                <a class="btn btn-sm btn-outline-secondary fw-bold" asp-controller="ProgramOfficer" asp-action="Sections" asp-route-offeringId="@Model.OfferingId">
+                    <i class="bi bi-arrow-left me-1"></i> Back
+                </a>
+            }
+            else
+            {
+                <a class="btn btn-sm btn-outline-secondary fw-bold" asp-controller="Schedule" asp-action="Index">
+                    <i class="bi bi-arrow-left me-1"></i> Back
+                </a>
+            }
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-3 overflow-hidden grid-header-accent">
+                <div class="card-header bg-white border-0 py-3 d-flex align-items-center">
+                    <i class="bi bi-calendar3 me-2" style="color: @clrIndigo;"></i>
+                    <h6 class="mb-0 fw-bold" style="color: @clrIndigo;">Weekly View</h6>
+
+                    @if (canEdit)
+                    {
+                        <span class="badge rounded-pill ms-3" style="background-color:#ecfeff; color:#155e75; border: 1px solid #cffafe;">Drag & drop enabled</span>
+                    }
+                    else
+                    {
+                        <span class="badge rounded-pill ms-3" style="background-color:#f1f5f9; color:#64748b; border: 1px solid #e2e8f0;">Read-only</span>
+                    }
+                </div>
+                <div class="card-body p-0">
+                    <div id="scMoveError" class="alert alert-danger border-0 shadow-sm m-3 d-none"></div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle mb-0 text-center" style="border-color: #e2e8f0;">
+                            <thead style="background-color: @lightBg;">
+                                <tr>
+                                    <th class="py-3 small text-uppercase fw-bold" style="color: @clrIndigo; width: 140px;">Slot</th>
+                                    @foreach (var d in Model.Days)
+                                    {
+                                        <th class="py-3 small text-uppercase fw-bold" style="color: @clrIndigo;">@d.Label</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var slot in Model.Slots)
+                                {
+                                    <tr>
+                                        <td style="background-color: #fffbeb;">
+                                            <div class="fw-bold" style="color: @clrAmber;">@slot.SlotNumber</div>
+                                            <div class="text-muted" style="font-size: 0.7rem;">@slot.TimeRange</div>
+                                        </td>
+                                        @foreach (var d in Model.Days)
+                                        {
+                                            var key = $"{d.DayOfWeek}:{slot.SlotNumber}";
+                                            var cell = Model.Cells.ContainsKey(key) ? Model.Cells[key] : null;
+                                            
+                                            if (cell != null && cell.IsDisabled)
+                                            {
+                                                <td class="bg-light" style="height:90px;">
+                                                    <div class="text-muted opacity-25"><i class="bi bi-dash-circle"></i></div>
+                                                </td>
+                                            }
+                                            else
+                                            {
+                                                <td style="height:90px; vertical-align: top;" class="p-2 sc-drop-cell" data-day="@d.DayOfWeek" data-slot="@slot.SlotNumber">
+                                                    @if (cell != null && cell.MeetingId.HasValue && cell.IsMeetingStart)
+                                                    {
+                                                        var draggable = canEdit ? "true" : "false";
+                                                        <div class="rounded p-2 h-100 shadow-sm text-start sc-meeting"
+                                                             style="background-color: #f0fdf4; border-left: 3px solid @clrEmerald;"
+                                                             draggable="@draggable"
+                                                             data-meeting-id="@cell.MeetingId"
+                                                             data-length="@cell.MeetingSlotLength">
+                                                            <div class="fw-bold mb-1" style="color: @clrIndigo; font-size: 0.75rem;">@cell.Course</div>
+                                                            <div class="text-dark fw-medium" style="font-size: 0.65rem;"><i class="bi bi-geo-alt"></i> @cell.Room</div>
+                                                            <div class="text-muted" style="font-size: 0.65rem;">@cell.Instructor</div>
+                                                        </div>
+                                                    }
+                                                    else if (cell != null && !string.IsNullOrWhiteSpace(cell.Course))
+                                                    {
+                                                        <div class="rounded p-2 h-100 shadow-sm text-start"
+                                                             style="background-color: #f0fdf4; border-left: 3px solid @clrEmerald; opacity: 0.45;">
+                                                            <div class="fw-bold mb-1" style="color: @clrIndigo; font-size: 0.75rem;">@cell.Course</div>
+                                                            <div class="text-dark fw-medium" style="font-size: 0.65rem;"><i class="bi bi-geo-alt"></i> @cell.Room</div>
+                                                            <div class="text-muted" style="font-size: 0.65rem;">@cell.Instructor</div>
+                                                        </div>
+                                                    }
+                                                </td>
+                                            }
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 rounded-3 overflow-hidden assignment-card h-100">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="mb-0 fw-bold" style="color: @clrEmerald;">
+                        <i class="bi bi-journal-check me-2"></i>Semester Assignments
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead style="background-color: @lightBg;">
+                            <tr>
+                                <th class="ps-4 small text-uppercase text-muted fw-bold">Course Details</th>
+                                <th class="small text-uppercase text-muted fw-bold text-end pe-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Assignments == null || !Model.Assignments.Any())
+                            {
+                                <tr>
+                                    <td colspan="2" class="text-center py-5 text-muted small">No assignments found for this term.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var a in Model.Assignments)
+                                {
+                                    <tr>
+                                        <td class="ps-4 py-3">
+                                            <div class="fw-bold" style="color: @clrIndigo; font-size: 0.85rem;">@a.Course</div>
+                                            <div class="text-muted small">@a.Instructor</div>
+                                            <div style="color: @clrCyan; font-size: 0.75rem;"><i class="bi bi-door-open"></i> @a.Room</div>
+                                        </td>
+                                        <td class="align-middle text-end pe-4">
+                                            <span class="badge rounded-pill px-3 py-2 fw-medium" 
+                                                  style="background-color: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0;">
+                                                @a.Status
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="scMoveMeetingForm" class="d-none" method="post">
+    @Html.AntiForgeryToken()
+</form>
+
+@section Scripts {
+    <script>
+        (function () {
+            const canEdit = @((canEdit).ToString().ToLowerInvariant());
+            if (!canEdit) return;
+
+            const errorEl = document.getElementById('scMoveError');
+            const tokenInput = document.querySelector('#scMoveMeetingForm input[name="__RequestVerificationToken"]');
+            const token = tokenInput ? tokenInput.value : '';
+            const moveUrl = '@Url.Action("MoveMeeting", "Schedule")';
+
+            function showError(msg) {
+                if (!errorEl) return;
+                errorEl.textContent = msg || 'Move rejected.';
+                errorEl.classList.remove('d-none');
+            }
+
+            function clearError() {
+                if (!errorEl) return;
+                errorEl.classList.add('d-none');
+                errorEl.textContent = '';
+            }
+
+            document.querySelectorAll('.sc-meeting[draggable="true"]').forEach(el => {
+                el.addEventListener('dragstart', (ev) => {
+                    clearError();
+                    const meetingId = el.getAttribute('data-meeting-id');
+                    if (!meetingId) return;
+                    ev.dataTransfer.setData('text/plain', meetingId);
+                    ev.dataTransfer.effectAllowed = 'move';
+                });
+            });
+
+            document.querySelectorAll('.sc-drop-cell').forEach(cell => {
+                cell.addEventListener('dragover', (ev) => {
+                    ev.preventDefault();
+                    cell.classList.add('sc-drag-over');
+                    ev.dataTransfer.dropEffect = 'move';
+                });
+
+                cell.addEventListener('dragleave', () => {
+                    cell.classList.remove('sc-drag-over');
+                });
+
+                cell.addEventListener('drop', async (ev) => {
+                    ev.preventDefault();
+                    cell.classList.remove('sc-drag-over');
+                    clearError();
+
+                    const meetingId = ev.dataTransfer.getData('text/plain');
+                    const day = cell.getAttribute('data-day');
+                    const slot = cell.getAttribute('data-slot');
+                    if (!meetingId || !day || !slot) return;
+
+                    const body = new URLSearchParams();
+                    body.append('__RequestVerificationToken', token);
+                    body.append('meetingId', meetingId);
+                    body.append('targetDayOfWeek', day);
+                    body.append('targetSlotStart', slot);
+
+                    try {
+                        const resp = await fetch(moveUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                            },
+                            body: body.toString()
+                        });
+
+                        if (resp.ok) {
+                            location.reload();
+                            return;
+                        }
+
+                        let msg = 'Move rejected.';
+                        try {
+                            const data = await resp.json();
+                            if (data && data.error) msg = data.error;
+                        } catch {
+                            // ignore
+                        }
+                        showError(msg);
+                    } catch {
+                        showError('Network error while moving meeting.');
+                    }
+                });
+            });
+        })();
+    </script>
+}

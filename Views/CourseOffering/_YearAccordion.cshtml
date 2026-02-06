@@ -1,0 +1,60 @@
+@* @model ScheduleCentral.Models.ViewModels.YearProgramViewModel
+
+<div class="accordion" id="batchAccordion-@Model.Id">
+
+@foreach (var batch in Model.Batches)
+{
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="batch-heading-@batch.Id">
+            <button class="accordion-button collapsed" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#batch-collapse-@batch.Id">
+                Batch @batch.BatchName (@batch.SemesterName)
+            </button>
+        </h2>
+
+        <div id="batch-collapse-@batch.Id" class="accordion-collapse collapse">
+            <div class="accordion-body">
+                @await Html.PartialAsync("_BatchAccordion", batch)
+            </div>
+        </div>
+    </div>
+}
+
+</div> *@
+@model ScheduleCentral.Models.ViewModels.YearProgramViewModel
+@using System.Globalization
+@{
+    // helper: convert integer-like YearLevel string to "1st"/"2nd"
+    string Ordinal(string s)
+    {
+        if (!int.TryParse(s, out var n)) return s;
+        if (n % 100 / 10 == 1) return n + "th";
+        return n % 10 == 1 ? n + "st" : n % 10 == 2 ? n + "nd" : n % 10 == 3 ? n + "rd" : n + "th";
+    }
+}
+
+<div class="accordion" id="year-@Model.Id-accordion">
+    @foreach (var batch in Model.Batches)
+    {
+        var batchCollapseId = $"batch-collapse-{batch.Id}";
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading-@batch.Id">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#@batchCollapseId">
+                    <div class="me-3 fw-bold">@Ordinal(Model.YearLevel)</div>
+                    <div class="text-muted small">@batch.BatchName &middot; Sem @batch.SemesterName</div>
+                    <div class="ms-auto">
+                        <span class="badge @(batch.Status == OfferingStatus.Submitted ? "bg-warning text-dark" : batch.Status == OfferingStatus.Approved ? "bg-success" : "bg-secondary")">
+                            @batch.Status
+                        </span>
+                    </div>
+                </button>
+            </h2>
+
+            <div id="@batchCollapseId" class="accordion-collapse collapse" data-bs-parent="#year-@Model.Id-accordion">
+                <div class="accordion-body py-3">
+                    @await Html.PartialAsync("_BatchAccordion", batch)
+                </div>
+            </div>
+        </div>
+    }
+</div>

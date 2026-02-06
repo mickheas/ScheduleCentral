@@ -1,0 +1,748 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using ScheduleCentral.Models
+@using ScheduleCentral.Services
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@inject NotificationService NotificationService
+
+@{
+    var hideNav = ViewData["HideNav"] as bool? ?? false;
+    var isAuthenticated = User?.Identity?.IsAuthenticated ?? false;
+    var user = isAuthenticated ? await UserManager.GetUserAsync(User!) : null;
+    var userName = user?.FirstName ?? User?.Identity?.Name;
+    var currentUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
+    var unreadNotifications = isAuthenticated && user != null ? await NotificationService.GetUnreadCountAsync(user.Id) : 0;
+    var recentNotifications = isAuthenticated && user != null ? await NotificationService.GetRecentAsync(user.Id, 8) : new List<UserNotification>();
+
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+
+    string Active(string controller, string? action = null)
+    {
+        if (!string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase)) return "";
+        if (action != null && !string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase)) return "";
+        return "active";
+    }
+}
+
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<!-- Initial theme set here, managed by JS -->
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] Class Schedule Management </title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Tailwind CSS (CDN utilities) -->
+    <script>
+        tailwind = { config: { corePlugins: { preflight: false } } };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Material Icons for Material Tailwind components -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/ScheduleCentral.styles.css" asp-append-version="true" />
+
+    <style>
+
+        :root {
+                --sc-primary: #4f46e5;
+                --sc-primary-soft: #eef2ff;
+                --sc-bg: #f4f5fb;
+                --sc-surface: #ffffff;
+                --sc-border-subtle: #e5e7eb;
+                --sc-text-main: #111827;
+                --sc-text-muted: #6b7280;
+        }
+
+        /* --- LIGHT MODE BASE STYLES --- */
+
+                body {
+                        padding-top: 56px; /* Height of navbar */
+                        background-color: var(--sc-bg); /* Light background */
+                        color: var(--sc-text-main); /* Dark text */
+                        transition: background-color 0.3s, color 0.3s; /* Smooth theme transition */
+                        min-height: 100vh;
+                        display: flex;
+                        flex-direction: column;
+                }
+
+        .navbar {
+                background-color: var(--sc-surface) !important;
+                border-bottom: 1px solid var(--sc-border-subtle);
+                box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+        }
+
+        .navbar .navbar-brand {
+                font-weight: 700;
+                letter-spacing: 0.08em;
+        }
+
+        .navbar .nav-link {
+                color: var(--sc-text-muted);
+        }
+
+        .navbar .nav-link:hover {
+                color: var(--sc-primary);
+        }
+
+        /* Sidebar Styles */
+                #sidebar {
+                        width: 60px;
+                        transition: width 0.3s, background-color 0.3s, box-shadow 0.3s;
+                        z-index: 1000;
+                        background-color: var(--sc-surface); /* Light Sidebar */
+                        box-shadow: 1px 0 0 var(--sc-border-subtle);
+                }
+
+        /* Sidebar Links (Light Mode) */
+                #sidebar .nav-link {
+                        white-space: nowrap;
+                        padding: 0.75rem 1rem;
+                        color: var(--sc-text-muted);
+                        border-left: 3px solid transparent;
+                        border-radius: 0.375rem;
+                        margin: 0.125rem 0.5rem;
+                }
+
+                #sidebar .nav-link:hover {
+                        background-color: var(--sc-primary-soft);
+                        color: var(--sc-primary);
+                }
+
+                #sidebar .nav-link.active {
+                        background-color: var(--sc-primary-soft);
+                        color: var(--sc-primary);
+                        border-left-color: var(--sc-primary);
+                }
+
+                .nav-item-header {
+                        color: var(--sc-text-muted) !important; /* Muted text */
+                }
+
+                footer {
+                        background-color: var(--sc-surface) !important; /* Ensure footer uses light background */
+                        color: var(--sc-text-muted);
+                }
+
+        /* --- DARK MODE OVERRIDES --- */
+                html[data-bs-theme="dark"] body {
+                        background-color: #1a1e22; /* Darker main background */
+                        color: #f8f9fa; /* Light text */
+
+        }
+
+                html[data-bs-theme="dark"] #sidebar {
+                        background-color: #212529; /* Dark Sidebar background */
+                        border-color: #343a40 !important;
+                        box-shadow: 1px 0 5px rgba(255, 255, 255, 0.05);
+
+        }
+
+
+        /* Sidebar Links (Dark Mode) */
+                html[data-bs-theme="dark"] #sidebar .nav-link {
+                        color: #adb5bd; /* Light gray text */
+                        border-left-color: transparent;
+
+        }
+
+                html[data-bs-theme="dark"] #sidebar .nav-link:hover {
+                        background-color: #343a40; /* Dark hover */
+                        color: #9ec5fe; /* Lighter primary blue */
+
+        }
+
+                html[data-bs-theme="dark"] #sidebar .nav-link.active {
+                        background-color: #3f444a; /* Dark active background */
+                        color: #9ec5fe;
+                        border-left-color: #9ec5fe;
+
+        }
+
+
+
+
+
+                html[data-bs-theme="dark"] .nav-item-header {
+                        color: #adb5bd !important; /* Lighter muted text */
+
+        }
+
+
+
+
+
+
+        /* Navbar overrides */
+                html[data-bs-theme="dark"] .navbar {
+                        background-color: #212529 !important; /* Dark Navbar background */
+                        border-color: #343a40 !important;
+
+        }
+
+                html[data-bs-theme="dark"] .navbar .text-dark,
+                html[data-bs-theme="dark"] .navbar .nav-link {
+                        color: #f8f9fa !important; /* Ensures icons and links are light */
+
+        }
+
+
+
+
+
+
+        /* Footer overrides */
+                html[data-bs-theme="dark"] footer {
+                        background-color: #212529 !important; /* Dark Footer */
+                        border-color: #343a40 !important;
+                        color: #adb5bd;
+
+        }
+
+                html[data-bs-theme="dark"] footer a {
+                        color: #adb5bd;
+
+        }
+
+
+
+
+
+
+        /* Ensure the text-danger logout button remains visible in dark mode */
+                html[data-bs-theme="dark"] #sidebar button.text-danger {
+                        color: #dc3545 !important;
+
+        }
+
+
+
+
+
+
+        /* General layout styles (preserved) */
+                #sidebar.expanded {
+                        width: 240px;
+
+        }
+
+
+        /* Hide text when collapsed */
+                #sidebar .sidebar-text {
+                        display: none;
+                        opacity: 0;
+                        transition: opacity 0.2s;
+
+        }
+
+
+        /* Show text when expanded */
+                #sidebar.expanded .sidebar-text {
+                        display: inline;
+                        opacity: 1;
+                        margin-left: 10px;
+
+        }
+
+
+        /* Icons are always centered/visible */
+                #sidebar .nav-link i {
+                        font-size: 1.2rem;
+                        min-width: 24px;
+                        text-align: center;
+
+        }
+
+
+        /* Content Area Adjustment */
+                #content {
+                        margin-left: 60px;
+                        transition: margin-left 0.3s;
+                        width: 100%;
+                        padding-bottom: 80px;
+
+        }
+
+                #sidebar.expanded ~ #content {
+                        margin-left: 240px;
+                        width: calc(100% - 240px);
+
+        }
+
+
+        /* Ensure main layout takes remaining height so footer sticks to bottom */
+                body > .d-flex {
+                        flex: 1 0 auto;
+
+        }
+
+
+        /* Custom accordion visibility classes to avoid Bootstrap/Material conflicts */
+                .sc-accordion-panel {
+                        display: none;
+
+        }
+
+                .sc-accordion-panel.sc-open {
+                        display: block;
+
+        }
+
+
+        /* Headers in sidebar */
+                .nav-item-header {
+                        font-size: 0.75rem;
+                        text-transform: uppercase;
+                        letter-spacing: 0.05em;
+                        padding: 1rem 1rem 0.5rem;
+                        display: none; /* Hidden when collapsed */
+
+        }
+
+
+
+
+
+                #sidebar.expanded .nav-item-header {
+                        display: block;
+
+        }
+
+
+
+
+
+                footer.footer {
+                        position: relative !important;
+                        bottom: auto !important;
+                        width: 100%; 
+                        line-height: 40px;
+                        margin-left: 60px;
+                        transition: margin-left 0.3s;
+                        flex-shrink: 0;
+
+        }
+
+
+                #sidebar.expanded ~ footer {
+                        margin-left: 240px;
+
+        }
+
+        /* Utility to hide scrollbars but allow scrolling */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+            overflow-x: hidden !important; /* Force hide horizontal scrollbar */
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none; /* Chrome, Safari and Opera */
+        }
+
+        /* Sidebar Divider Styling */
+        .sidebar-divider {
+            margin: 8px 16px;
+            border-top: 1px solid var(--sc-border-subtle);
+        }
+
+        html[data-bs-theme="dark"] .sidebar-divider {
+            border-top-color: rgba(255, 255, 255, 0.1);
+        }
+
+    </style>
+</head>
+<body>
+
+    @if (!hideNav)
+    {
+        <header>
+            <!-- Navbar styled with Material Tailwind + Tailwind utilities on top of Bootstrap -->
+            <nav class="navbar navbar-expand-sm fixed-top border-bottom shadow-sm bg-white/80 backdrop-blur-md">
+                <div class="container-fluid px-3 flex items-center justify-between">
+
+
+                    <!-- Sidebar Toggle -->
+                    <button id="sidebarToggle" class="btn btn-link text-dark p-0 me-3">
+                        <i class="bi bi-list fs-4"></i>
+                    </button>
+
+                    <!-- Brand -->
+                    <a class="navbar-brand fw-bold text-primary" asp-controller="Home" asp-action="Index">
+                        <span style="letter-spacing:2px;">CSMS</span>
+                    </a>
+
+
+                    <!-- Theme Toggle, Public Schedule, and Profile/Login Menu -->
+                    <div class="d-flex align-items-center ms-auto gap-3">
+
+
+                        <!-- Public Schedule Viewer (always available) -->
+                        <a class="btn btn-outline-primary btn-sm @(Active("Schedule", "Public"))" asp-controller="Schedule" asp-action="Public">
+                            <i class="bi bi-calendar-event me-1"></i> View Schedule
+                        </a>
+
+                        @if (isAuthenticated)
+                        {
+                            <ul class="navbar-nav">
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+                                        <i class="bi bi-bell fs-5"></i>
+                                        @if (unreadNotifications > 0)
+                                        {
+                                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                                @unreadNotifications
+                                            </span>
+                                        }
+                                    </a>
+
+                                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" style="min-width: 340px;">
+                                        <li class="px-3 pt-2 pb-1 d-flex justify-content-between align-items-center">
+                                            <span class="fw-bold">Notifications</span>
+                                            <form asp-controller="Notifications" asp-action="MarkAllRead" method="post" class="m-0">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="returnUrl" value="@currentUrl" />
+                                                <button type="submit" class="btn btn-link btn-sm p-0">Mark all read</button>
+                                            </form>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+
+                                        @if (recentNotifications == null || recentNotifications.Count == 0)
+                                        {
+                                            <li class="px-3 py-2 text-muted small">No notifications.</li>
+                                        }
+                                        else
+                                        {
+                                            @foreach (var n in recentNotifications)
+                                            {
+                                                <li>
+                                                    <a class="dropdown-item d-flex flex-column gap-1" asp-controller="Notifications" asp-action="Go" asp-route-id="@n.Id">
+                                                        <div class="d-flex justify-content-between">
+                                                            <span class="fw-semibold">@n.Title</span>
+                                                            <span class="text-muted" style="font-size: 0.75rem;">@n.CreatedAtUtc.ToLocalTime().ToString("g")</span>
+                                                        </div>
+                                                        @if (!string.IsNullOrWhiteSpace(n.Message))
+                                                        {
+                                                            <div class="text-muted small">@n.Message</div>
+                                                        }
+                                                    </a>
+                                                </li>
+                                            }
+                                        }
+                                    </ul>
+                                </li>
+
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <span class="me-2 d-none d-sm-inline text-secondary small">@userName</span>
+                                        <div class="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center" style="width: 32px; height: 32px;">
+                                            @(userName?.FirstOrDefault().ToString().ToUpper() ?? "U")
+                                        </div>
+                                    </a>
+
+                                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center py-2" asp-area="Identity" asp-page="/Account/Manage/Index">
+                                                <i class="bi bi-person-gear me-2 text-muted"></i> Profile Settings
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })" method="post">
+                                                <button type="submit" class="dropdown-item d-flex align-items-center text-danger py-2">
+                                                    <i class="bi bi-box-arrow-right me-2"></i> Logout
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        }
+                        else
+                        {
+                            <ul class="navbar-nav">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/Account/RegisterInstructor">
+                                        <i class="bi bi-person-plus me-1"></i> Register as Instructor
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="Identity" asp-page="/Account/Login">
+                                        <i class="bi bi-box-arrow-in-right me-1"></i> Login
+                                    </a>
+                                </li>
+                            </ul>
+                        }
+                    </div>
+                </div>
+            </nav>
+        </header>
+    }
+
+    <div class="d-flex">
+
+        @if (!hideNav && isAuthenticated)
+        {
+            <!-- SIDEBAR styled as a Material Tailwind-like app shell -->
+
+            <div id="sidebar" class="border-end vh-100 position-fixed pt-2 d-flex flex-column overflow-hidden bg-white/90 backdrop-blur-sm shadow-sm">
+                <div class="flex-grow-1 overflow-auto no-scrollbar" style="overflow-x: hidden;">
+                    <ul class="nav flex-column pb-4"> <li class="nav-item">
+                            <a class="nav-link @(Active("Home", "Index"))" asp-controller="Home" asp-action="Index">
+                                <i class="bi bi-speedometer2"></i>
+                                <span class="sidebar-text">Dashboard</span>
+                            </a>
+                        </li>
+
+                        @if (!User.IsInRole("Student"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(Active("Analytics", "Index"))" asp-controller="Analytics" asp-action="Index">
+                                    <i class="bi bi-graph-up"></i>
+                                    <span class="sidebar-text">Analytics</span>
+                                </a>
+                            </li>
+                        }
+
+                        @if (User!.IsInRole("Admin"))
+                        {
+                            <li class="sidebar-divider"></li> <li class="nav-item-header text-muted mt-2">Admin</li>
+                            <li class="nav-item">
+                                <a class="nav-link @(Active("Admin", "ListUsers"))" asp-controller="Admin" asp-action="ListUsers">
+                                    <i class="bi bi-people"></i>
+                                    <span class="sidebar-text">Manage Users</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(Active("Admin", "ManageDepartments"))" asp-controller="Admin" asp-action="ManageDepartments">
+                                    <i class="bi bi-building"></i>
+                                    <span class="sidebar-text">Manage Departments</span>
+                                </a>
+                            </li>
+                            
+                        }
+
+                        @if (User.IsInRole("ProgramOfficer") || User.IsInRole("Admin"))
+                        {
+                            <li class="sidebar-divider"></li> <li class="nav-item-header text-muted mt-2">Scheduling</li>
+                            <li class="nav-item">
+                                <a class="nav-link @(Active("ProgramOfficer", "Index"))" asp-controller="ProgramOfficer" asp-action="Index">
+                                    <i class="bi bi-grid-3x3-gap"></i>
+                                    <span class="sidebar-text">Academic Planning</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(Active("ProgramOfficer", "InstructorApprovals"))" asp-controller="ProgramOfficer" asp-action="InstructorApprovals">
+                                    <i class="bi bi-person-check"></i>
+                                    <span class="sidebar-text">Instructor Approvals</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(Active("ProgramOfficer", "Index1"))" asp-controller="ProgramOfficer" asp-action="Index1">
+                                    <i class="bi bi-eye"></i>
+                                    <span class="sidebar-text">Review Offering</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(Active("ProgramOfficer", "History"))" asp-controller="ProgramOfficer" asp-action="History">
+                                    <i class="bi bi-calendar-check"></i>
+                                    <span class="sidebar-text">Approved History</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(Active("Schedule", "MeetingsHistory"))" asp-controller="Schedule" asp-action="MeetingsHistory">
+                                    <i class="bi bi-clock-history"></i>
+                                    <span class="sidebar-text">Schedule History</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(Active("Schedule", "Index"))" asp-controller="Schedule" asp-action="Index">
+                                    <i class="bi bi-cpu me-2"></i>
+                                    <span class="sidebar-text">Generate Schedule</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(Active("SwapRequest", "Index"))" asp-controller="SwapRequest" asp-action="Index">
+                                    <i class="bi bi-arrow-left-right"></i>
+                                    <span class="sidebar-text">Swap Requests</span>
+                                </a>
+                            </li>
+                        }
+
+                        @if (User.IsInRole("Instructor"))
+                        {
+                            <li class="sidebar-divider"></li> <li class="nav-item-header text-muted mt-2">Instructor</li>
+                            <li class="nav-item">
+                                <a class="nav-link @(Active("Instructor", "MySchedule"))" asp-controller="Instructor" asp-action="MySchedule">
+                                    <i class="bi bi-calendar3"></i>
+                                    <span class="sidebar-text">My Schedule</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(Active("Instructor", "Availability"))" asp-controller="Instructor" asp-action="Availability">
+                                    <i class="bi bi-calendar-week"></i>
+                                    <span class="sidebar-text">My Availability</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(Active("SwapRequest", "Index"))" asp-controller="SwapRequest" asp-action="Index">
+                                    <i class="bi bi-arrow-left-right"></i>
+                                    <span class="sidebar-text">Swap Requests</span>
+                                </a>
+                            </li>
+                        }
+
+                        @if (User.IsInRole("Department") || User.IsInRole("Admin"))
+                        {
+                            <li class="sidebar-divider"></li> <li class="nav-item-header text-muted mt-2">Department</li>
+                            <li class="nav-item">
+                                <a class="nav-link @(Active("CourseOffering", "Index"))" asp-controller="CourseOffering" asp-action="Index">
+                                    <i class="bi bi-calendar-week"></i>
+                                    <span class="sidebar-text">Course Offering</span>
+                                </a>
+                            </li>
+                            @* <li class="nav-item">
+                                <a class="nav-link" asp-controller="CourseOffering" asp-action="MyFeedback">
+                                    <i class="bi bi-chat-left-text"></i>
+                                    <span class="sidebar-text">Offering Feedback</span>
+                                </a>
+                            </li> *@
+                            <li class="nav-item">
+                                <a class="nav-link @(Active("CourseCatalog", "Index"))" asp-controller="CourseCatalog" asp-action="Index">
+                                    <i class="bi bi-journal-bookmark"></i>
+                                    <span class="sidebar-text">Course Catalog</span>
+                                </a>
+                            </li>
+                        }
+
+                        @if (User.IsInRole("TopManagement") || User.IsInRole("Admin"))
+                        {
+                            <li class="sidebar-divider"></li> <li class="nav-item-header text-muted mt-2">Reports</li>
+                            <li class="nav-item">
+                                <a class="nav-link @(Active("ScheduleApproval", "Index"))" asp-controller="ScheduleApproval" asp-action="Index">
+                                    <i class="bi bi-clipboard-check"></i>
+                                    <span class="sidebar-text">Schedule Approvals</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(Active("Schedule", "MeetingsHistory"))" asp-controller="Schedule" asp-action="MeetingsHistory">
+                                    <i class="bi bi-clock-history"></i>
+                                    <span class="sidebar-text">Schedule History</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(Active("Schedule", "Audit"))" asp-controller="Schedule" asp-action="Audit">
+                                    <i class="bi bi-shield-check"></i>
+                                    <span class="sidebar-text">Schedule Audit</span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+
+                <div class="border-top p-2">
+                    <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })" method="post">
+                        <button type="submit" class="nav-link w-100 d-flex align-items-center text-danger border-0 bg-transparent">
+                            <i class="bi bi-box-arrow-left"></i>
+                            <span class="sidebar-text">Sign out</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+
+        <!-- MAIN CONTENT -->
+        <div id="content" class="p-4">
+            <main role="main">
+                <partial name="_TempDataAlerts" />
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    @if (!hideNav)
+    {
+        <footer class="border-top footer mt-auto py-1 small position-relative bg-white">
+            <div class="container-fluid px-4">
+                &copy; 2026 - CSMS - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            </div>
+        </footer>
+    }
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script>
+        // Theme and Sidebar initialization logic
+        document.addEventListener("DOMContentLoaded", function() {
+            const htmlElement = document.documentElement;
+            const themeToggleBtn = document.getElementById("themeToggle");
+            const themeIcon = document.getElementById("themeIcon");
+
+            // --- 1. THEME LOGIC ---
+
+            const getStoredTheme = () => localStorage.getItem('theme');
+            const setStoredTheme = theme => localStorage.setItem('theme', theme);
+
+            // Function to apply the theme and update the icon
+            const applyTheme = (theme) => {
+                // Set the data-bs-theme attribute on the root html element
+                htmlElement.setAttribute('data-bs-theme', theme);
+
+                if (themeIcon) {
+                    if (theme === 'dark') {
+                        // Set icon to sun when it's dark (meaning next click will switch to light)
+                        themeIcon.classList.remove('bi-moon');
+                        themeIcon.classList.add('bi-sun-fill');
+                    } else {
+                        // Set icon to moon when it's light (meaning next click will switch to dark)
+                        themeIcon.classList.remove('bi-sun-fill');
+                        themeIcon.classList.add('bi-moon');
+                    }
+                }
+            };
+
+            // Initialize theme from localStorage, or default to 'light'
+            const initialTheme = getStoredTheme() || 'light';
+            applyTheme(initialTheme);
+
+            // Theme toggle click listener
+            if (themeToggleBtn) {
+                themeToggleBtn.addEventListener("click", function () {
+                    const currentTheme = htmlElement.getAttribute('data-bs-theme');
+                    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                    setStoredTheme(newTheme);
+                    applyTheme(newTheme);
+                });
+            }
+
+
+            // --- 2. SIDEBAR LOGIC (Existing) ---
+            const toggleBtn = document.getElementById("sidebarToggle");
+            const sidebar = document.getElementById("sidebar");
+
+            if (toggleBtn && sidebar) {
+                // Restore state from local storage if you want persistence
+                const isExpanded = localStorage.getItem("sidebarExpanded") === "true";
+                if(isExpanded) sidebar.classList.add("expanded");
+
+                toggleBtn.addEventListener("click", function () {
+                    sidebar.classList.toggle("expanded");
+                    // Save state
+                    localStorage.setItem("sidebarExpanded", sidebar.classList.contains("expanded"));
+                });
+            }
+        });
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

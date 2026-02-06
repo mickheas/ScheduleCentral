@@ -1,0 +1,232 @@
+@model ScheduleCentral.Controllers.ManageOfferingViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Review Offering";
+
+    // Palette Colors
+    var clrIndigo = "#4f46e5";
+    var clrEmerald = "#10b981";
+    var clrCyan = "#06b6d4";
+    var clrAmber = "#f59e0b";
+    var lightBg = "#f8fafc";
+}
+
+<style>
+    /* Styling for the custom sc-accordion classes */
+    .review-accordion-btn {
+        background-color: white !important;
+        color: @clrIndigo !important;
+        font-weight: 600 !important;
+        border-left: 5px solid @clrIndigo;
+        width: 100%;
+        text-align: left;
+        border: none;
+        display: flex;
+        align-items: center;
+        transition: all 0.2s ease;
+    }
+
+    /* When the panel is expanded (logic often adds a class or relies on toggle state) */
+    .review-accordion-btn:not(.collapsed) {
+        border-left: 5px solid @clrCyan;
+        background-color: #f0f9ff !important;
+    }
+
+    .sc-accordion-panel {
+        background-color: white;
+    }
+
+    .status-badge-outline {
+        border: 1px solid currentColor;
+        background-color: @clrAmber;
+    }
+</style>
+
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-end mb-4">
+        <div>
+            <h1 class="h4 mb-1 fw-bold" style="color: @clrIndigo;">Review Course Offering</h1>
+            <div class="d-flex align-items-center gap-2 text-muted small">
+                <i class="bi bi-building"></i> @Model.Department 
+                <span class="text-secondary opacity-50">|</span> 
+                <i class="bi bi-calendar4-range"></i> AY @Model.AcademicYear 
+                <span class="text-secondary opacity-50">|</span> 
+                <i class="bi bi-info-circle"></i> Sem @Model.Semester
+            </div>
+        </div>
+        
+        @if (Model.Status == OfferingStatus.Submitted)
+        {
+            <div class="d-flex gap-2">
+                <form asp-action="Approve" asp-controller="ProgramOfficer" asp-route-offeringId="@Model.OfferingId" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn text-white fw-bold px-4 shadow-sm" style="background-color: @clrEmerald;">
+                        <i class="bi bi-check2-all me-1"></i> Accept Offering
+                    </button>
+                </form>
+                <button class="btn btn-outline-danger fw-bold px-4" type="button" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                    <i class="bi bi-x-circle me-1"></i> Reject
+                </button>
+            </div>
+        }
+        else if (Model.Status == OfferingStatus.Approved)
+        {
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-danger fw-bold px-4" type="button" data-bs-toggle="modal" data-bs-target="#rereviewRejectModal">
+                    <i class="bi bi-x-circle me-1"></i> Re-review & Reject
+                </button>
+            </div>
+        }
+    </div>
+    @if (Model.Status != OfferingStatus.Submitted)
+        {
+            <div class="alert border-0 shadow-sm d-flex align-items-center mb-4" style="background-color: #f0fdfa; color: @clrCyan;">
+                <i class="bi bi-info-square-fill me-3 fs-4"></i>
+                <div>
+                    <span class="fw-bold text-uppercase small d-block">System Notice</span>
+                    This offering is currently <span class="badge rounded-pill status-badge-outline" style="background-color: #efe383; color: @clrAmber; border: 1px solid #cffafe;">@Model.Status</span> and is locked for review.
+                </div>
+            </div>
+    }
+    <div class="accordion border-0" id="poReviewBatchAccordion" data-sc-accordion="true" data-sc-accordion-single="true">
+        @if (Model.Batches == null || !Model.Batches.Any())
+        {
+            <div class="text-center py-5 bg-white rounded-4 shadow-sm border">
+                <i class="bi bi-folder-x display-4 text-muted opacity-25"></i>
+                <p class="mt-3 text-muted">No batches found for this offering.</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var batch in Model.Batches)
+            {
+                <div class="accordion-item border-0 mb-3 shadow-sm rounded-3 overflow-hidden">
+                    <h2 class="accordion-header" id="po-heading-@batch.Id">
+                        <button class="accordion-button review-accordion-btn collapsed py-3" type="button" 
+                                data-sc-accordion-toggle 
+                                data-sc-target="#po-batchcollapse-@batch.Id">
+                            <div class="d-flex justify-content-between w-100 align-items-center pe-3">
+                                <span>
+                                    <i class="bi bi-mortarboard me-2" style="color: @clrCyan;"></i>
+                                    Year @Ordinal(batch.YearLevel) — @batch.BatchName
+                                </span>
+                                <span class="badge rounded-pill bg-light text-dark fw-normal small">
+                                    @(batch.Courses?.Count() ?? 0) Courses
+                                </span>
+                            </div>
+                        </button>
+                    </h2>
+
+                    <div id="po-batchcollapse-@batch.Id" class="accordion-collapse sc-accordion-panel shadow-inner">
+                        <div class="accordion-body bg-white p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead style="background-color: @lightBg;">
+                                        <tr class="small text-uppercase text-muted fw-bold">
+                                            <th class="ps-4 py-3"> </th>
+                                            <th>Course Name</th>
+                                            <th class="text-center">Hours</th>
+                                            <th>Room Requirements</th>
+                                            <th class="pe-4">Primary Instructor</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (batch.Courses == null || !batch.Courses.Any())
+                                        {
+                                            <tr><td colspan="5" class="text-center py-4 text-muted small">No courses added.</td></tr>
+                                        }
+                                        else
+                                        {
+                                            var idx = 1;
+                                            @foreach (var c in batch.Courses)
+                                            {
+                                                <tr>
+                                                    <td class="ps-4 text-muted small">@idx.ToString("00")</td>
+                                                    <td><div class="fw-bold" style="color: @clrIndigo;">@c.CourseName</div></td>
+                                                    <td class="text-center">
+                                                        <span class="badge rounded-pill" style="background-color: #fffbeb; color: @clrAmber;">
+                                                            @c.ContactHours hrs
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        @foreach (var rt in c.RoomTypes)
+                                                        {
+                                                            <span class="badge bg-light text-secondary border small fw-normal me-1">@rt</span>
+                                                        }
+                                                    </td>
+                                                    <td class="pe-4 text-muted small"><i class="bi bi-person me-1"></i> @c.InstructorName</td>
+                                                </tr>
+                                                idx++;
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <form asp-action="Reject" asp-controller="ProgramOfficer" asp-route-offeringId="@Model.OfferingId" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="fw-bold text-danger">Rejection Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <p class="text-muted small mb-3">Feedback for the department head:</p>
+                    <label class="form-label small fw-bold">Reason</label>
+                    <textarea name="reason" class="form-control shadow-sm border-0" rows="4" style="background-color: @lightBg;" required></textarea>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-link text-muted fw-bold text-decoration-none" data-bs-dismiss="modal">Go Back</button>
+                    <button type="submit" class="btn btn-danger fw-bold px-4 shadow-sm">Confirm Rejection</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="rereviewRejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <form asp-action="ReReviewRejectApprovedOffering" asp-controller="ProgramOfficer" asp-route-offeringId="@Model.OfferingId" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="fw-bold text-danger">Re-review Rejection Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <p class="text-muted small mb-3">Feedback for the department head:</p>
+                    <label class="form-label small fw-bold">Reason</label>
+                    <textarea name="reason" class="form-control shadow-sm border-0" rows="4" style="background-color: @lightBg;" required></textarea>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-link text-muted fw-bold text-decoration-none" data-bs-dismiss="modal">Go Back</button>
+                    <button type="submit" class="btn btn-danger fw-bold px-4 shadow-sm">Confirm Rejection</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@functions {
+    string Ordinal(int yearLevel)
+    {
+        if (yearLevel <= 0) return "?";
+        if (yearLevel % 100 >= 11 && yearLevel % 100 <= 13) return $"{yearLevel}th";
+        return (yearLevel % 10) switch
+        {
+            1 => $"{yearLevel}st",
+            2 => $"{yearLevel}nd",
+            3 => $"{yearLevel}rd",
+            _ => $"{yearLevel}th"
+        };
+    }
+}

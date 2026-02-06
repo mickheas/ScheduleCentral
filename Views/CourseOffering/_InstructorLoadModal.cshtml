@@ -1,0 +1,58 @@
+@model IEnumerable<ScheduleCentral.Services.InstructorLoadViewModel>
+
+<div class="modal fade" id="instructorLoadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">Instructor Load</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+            <div class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead class="table-light small">
+                <tr>
+                    <th>Instructor</th>
+                    <th>Department</th>
+                    <th>Assigned Load</th>
+                    <th>Limit</th>
+                    <th>Projected</th>
+                    <th>Status</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var instr in Model)
+                {
+                    var pct = (instr.CurrentLoad * 100) / (instr.AvailableHours > 0 ? instr.AvailableHours : 1);
+                    <tr>
+                    <td>@instr.FullName</td>
+                    <td><span class="badge bg-light text-dark border">@instr.Department</span></td>
+                    <td>@instr.CurrentLoad hrs</td>
+                    <td>@instr.AvailableHours hrs</td>
+                    <td>@(instr.CurrentLoad) hrs</td>
+                    <td>
+                        @if(instr.IsOverloaded)
+                        {
+                        <span class="badge bg-danger">Overloaded</span>
+                        }
+                        else if(pct > 80)
+                        {
+                        <span class="badge bg-warning text-dark">Near Limit</span>
+                        }
+                        else
+                        {
+                        <span class="badge bg-success">Available</span>
+                        }
+                    </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,57 @@
+@model ScheduleCentral.Models.ViewModels.CreateSectionsViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Create Sections";
+}
+
+<h4>Create Sections — @Model.Department (@Model.AcademicYear, Semester @Model.Semester)</h4>
+
+<form asp-action="CreateSections" asp-controller="ProgramOfficer" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="OfferingId" value="@Model.OfferingId" />
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Year</th>
+                <th>Batch</th>
+                <th>Semester</th>
+                <th>Type</th>
+                <th># Sections</th>
+            </tr>
+        </thead>
+        <tbody>
+        @for (var i = 0; i < Model.Batches.Count; i++)
+        {
+            <tr>
+                <td>
+                    @Model.Batches[i].YearLevel
+                    <input type="hidden" name="Batches[@i].OfferingBatchId" value="@Model.Batches[i].OfferingBatchId" />
+                    <input type="hidden" name="Batches[@i].YearLevel" value="@Model.Batches[i].YearLevel" />
+                </td>
+                <td>
+                    @Model.Batches[i].BatchName
+                    <input type="hidden" name="Batches[@i].BatchName" value="@Model.Batches[i].BatchName" />
+                </td>
+                <td>
+                    @Model.Batches[i].Semester
+                    <input type="hidden" name="Batches[@i].Semester" value="@Model.Batches[i].Semester" />
+                </td>
+                <td>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="Batches[@i].IsExtension" value="true" @(Model.Batches[i].IsExtension ? "checked" : "") />
+                        <label class="form-check-label">Extension</label>
+                    </div>
+                </td>
+                <td style="max-width:150px;">
+                    <input class="form-control" type="number" min="1" max="20" name="Batches[@i].SectionCount" value="@Model.Batches[i].SectionCount" />
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+
+    <div class="d-flex justify-content-end">
+        <button type="submit" class="btn btn-success">Generate</button>
+    </div>
+</form>

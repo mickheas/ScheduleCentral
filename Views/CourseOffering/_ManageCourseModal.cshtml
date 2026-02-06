@@ -1,0 +1,959 @@
+@* @model ScheduleCentral.Controllers.ManageOfferingViewModel
+@{
+    var allCourses = ViewBag.AllCourses as SelectList;
+    var RoomTypes = ViewBag.RoomTypes as IEnumerable<ScheduleCentral.Models.RoomType>;
+    // We don't populate instructors initially because they depend on the selected course
+}
+
+<div class="modal fade" id="manageCourseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form id="manageCourseForm" class="needs-validation" novalidate>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="manageCourseTitle">Manage Course</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <input type="hidden" id="sectionId" name="SectionId" />
+                    <input type="hidden" id="modalBatchId" name="BatchId" />
+
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Course</label>
+                            <select id="modalCourseId" name="CourseId" class="form-select" required>
+                                <option value="">-- Select Course --</option>
+                                @if (allCourses != null)
+                                {
+                                    foreach (var c in allCourses)
+                                    {
+                                        <option value="@c.Value">@c.Text</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Total Hours</label>
+                            <input id="modalContactHours" name="ContactHours" type="number" class="form-control" readonly />
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label">Qualified Instructor</label>
+                            <select id="modalInstructorId" name="InstructorId" class="form-select">
+                                <option value="">-- Select Course First --</option>
+                            </select>
+                        </div>
+
+                        @if ((Model.Department ?? "").Trim().Equals("Architecture", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <div class="col-md-12">
+                                <label class="form-label">Qualified Instructors</label>
+                                <div class="dropdown w-100">
+                                    <button id="modalInstructorIdsDropdownBtn" class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        Select instructors
+                                    </button>
+                                    <ul id="modalInstructorIdsDropdownMenu" class="dropdown-menu w-100" style="max-height: 320px; overflow:auto;"></ul>
+                                </div>
+                                <select id="modalInstructorIds" name="InstructorIds" class="form-select d-none" multiple></select>
+                            </div>
+
+                            <div class="col-md-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="modalIsFullDay" />
+                                    <label class="form-check-label" for="modalIsFullDay">Full day</label>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Room Requirements Breakdown</label>
+                            <div class="card bg-light">
+                                <div class="card-body p-2">
+                                    <div class="input-group mb-2">
+                                        <select id="roomTypeAdderSelect" class="form-select">
+                                            <option value="">-- Pick a Room Type to Add --</option>
+                                            @if (RoomTypes != null)
+                                            {
+                                                foreach (var rt in RoomTypes)
+                                                {
+                                                    <option value="@rt.Id">@rt.Name</option>
+                                                }
+                                            }
+                                        </select>
+                                        <button type="button" class="btn btn-secondary" id="btnAddRoomType">
+                                            <i class="bi bi-plus"></i> Add
+                                        </button>
+                                    </div>
+
+                                    <div id="roomRequirementsContainer">
+                                        <div id="emptyRoomMsg" class="text-muted small fst-italic text-center mt-2">
+                                            No room requirements added yet.
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="text-end mt-1">
+                                        <small class="text-muted">Total Assigned: <span id="hoursSumDisplay">0</span> hrs</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="manageCourseErrors" class="mt-2 text-danger"></div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button id="saveCourseBtn" type="button" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const courseSelect = document.getElementById('modalCourseId');
+        const instructorSelect = document.getElementById('modalInstructorId');
+        const instructorMultiSelect = document.getElementById('modalInstructorIds');
+        const instructorMultiDropdownBtn = document.getElementById('modalInstructorIdsDropdownBtn');
+        const instructorMultiDropdownMenu = document.getElementById('modalInstructorIdsDropdownMenu');
+        const fullDayCheckbox = document.getElementById('modalIsFullDay');
+        const totalHoursInput = document.getElementById('modalContactHours');
+        const getSectionDetailsUrl = (sectionId) => `@Url.Action("GetSectionDetails", "CourseOffering")?sectionId=${sectionId}`;
+        // Room Requirement Elements
+        const btnAddRT = document.getElementById('btnAddRoomType');
+        const selectAddRT = document.getElementById('roomTypeAdderSelect');
+        const containerRT = document.getElementById('roomRequirementsContainer');
+        const emptyMsg = document.getElementById('emptyRoomMsg');
+        const sumDisplay = document.getElementById('hoursSumDisplay');
+
+        // Helper to get the base URL for the controller
+        // const getUrl = (action) => `@Url.Action("${action}", "CourseOffering")`;
+        // Fixed URL for GetCourseDetails action
+        const getCourseDetailsUrl = '@Url.Action("GetCourseDetails", "CourseOffering")';
+
+        const isArchitecture = ('@Model.Department' || '').trim().toLowerCase() === 'architecture';
+
+        function updateInstructorMultiDropdownButton() {
+            if (!isArchitecture || !instructorMultiDropdownBtn || !instructorMultiSelect) return;
+
+            const selected = Array.from(instructorMultiSelect.selectedOptions || []).map(o => (o?.textContent || '').trim()).filter(Boolean);
+            if (selected.length === 0) {
+                instructorMultiDropdownBtn.textContent = 'Select instructors';
+                return;
+            }
+            if (selected.length <= 2) {
+                instructorMultiDropdownBtn.textContent = selected.join(', ');
+                return;
+            }
+
+            instructorMultiDropdownBtn.textContent = `${selected.length} instructors selected`;
+        }
+
+        function rebuildInstructorMultiDropdown() {
+            if (!isArchitecture || !instructorMultiSelect || !instructorMultiDropdownMenu) return;
+
+            instructorMultiDropdownMenu.innerHTML = '';
+            const opts = Array.from(instructorMultiSelect.options || []);
+            if (opts.length === 0) {
+                const li = document.createElement('li');
+                li.innerHTML = '<span class="dropdown-item-text text-muted">Select course first</span>';
+                instructorMultiDropdownMenu.appendChild(li);
+                updateInstructorMultiDropdownButton();
+                return;
+            }
+
+            opts.forEach(opt => {
+                const li = document.createElement('li');
+                const wrapper = document.createElement('div');
+                wrapper.className = 'dropdown-item';
+
+                const check = document.createElement('input');
+                check.type = 'checkbox';
+                check.className = 'form-check-input me-2';
+                check.dataset.value = opt.value;
+                check.checked = !!opt.selected;
+                check.disabled = !!opt.disabled;
+
+                const label = document.createElement('span');
+                label.textContent = opt.textContent || opt.value;
+
+                wrapper.appendChild(check);
+                wrapper.appendChild(label);
+                li.appendChild(wrapper);
+                instructorMultiDropdownMenu.appendChild(li);
+            });
+
+            updateInstructorMultiDropdownButton();
+        }
+
+        if (isArchitecture && instructorMultiDropdownMenu && instructorMultiSelect) {
+            instructorMultiDropdownMenu.addEventListener('change', function (e) {
+                const target = e.target;
+                if (!target || target.tagName !== 'INPUT' || target.type !== 'checkbox') return;
+
+                const val = target.dataset.value;
+                if (!val) return;
+
+                const opt = Array.from(instructorMultiSelect.options || []).find(o => o.value === val);
+                if (!opt || opt.disabled) {
+                    target.checked = false;
+                    return;
+                }
+
+                opt.selected = !!target.checked;
+                updateInstructorMultiDropdownButton();
+            });
+        }
+        
+        const roomTypeMap = {};
+                @if (ViewBag.RoomTypes is IEnumerable<ScheduleCentral.Models.RoomType> roomTypes)
+                {
+                    @foreach (var rt in roomTypes)
+                    {
+                        // Create map entries like: { 1: "Lecture Room", 2: "Computer Lab", ... }
+                        <text>roomTypeMap[@rt.Id] = '@Html.Raw(rt.Name.Replace("'", "\\'"))';</text>
+                    }
+                }
+        // Function to update the instructor and hours based on the selected course
+        function fetchCourseDetails(courseId) {
+            
+            // 1. Reset Instructor UI
+            instructorSelect.innerHTML = '<option value="">Loading...</option>';
+            if (instructorMultiSelect) instructorMultiSelect.innerHTML = '';
+            totalHoursInput.value = "";
+            
+            if (!courseId) {
+                instructorSelect.innerHTML = '<option value="">-- Select Course First --</option>';
+                if (fullDayCheckbox) fullDayCheckbox.checked = false;
+                return;
+            }
+
+            // Get current term from the model (needed for instructor load calculation)
+            const semester = '@Model.Semester';
+            const academicYear = '@Model.AcademicYear';
+            
+            // 2. Call the new Controller Endpoint
+            // return fetch(`${getUrl("GetCourseDetails")}?courseId=${courseId}&semester=${semester}`)
+            return fetch(`${getCourseDetailsUrl}?courseId=${courseId}&semester=${encodeURIComponent(semester)}&academicYear=${encodeURIComponent(academicYear)}`)
+                .then(r => {
+                    if (!r.ok) {
+                        throw new Error("Failed to fetch course details or instructors.");
+                    }
+                    return r.json();
+                })
+                .then(data => {
+                    // a) Set Total Hours
+                    totalHoursInput.value = data.contactHours;
+
+                    // b) Populate Qualified Instructors
+                    instructorSelect.innerHTML = '<option value="">-- Unassigned --</option>';
+
+                    if (instructorMultiSelect) instructorMultiSelect.innerHTML = '';
+
+                    const instructors = data.qualifiedInstructors || [];
+
+                    if (instructors.length > 0) {
+                        instructors.forEach(instr => {
+                            const option = document.createElement('option');
+                            option.value = instr.id;          // string ApplicationUser.Id
+                            option.textContent = `${instr.name} (${instr.currentLoad}/${instr.maxLoad} hrs)`;
+                            if (instr.isOverloaded) {
+                                option.disabled = true;
+                                option.textContent += " (Overloaded)";
+                            }
+                            instructorSelect.appendChild(option);
+
+                            if (instructorMultiSelect) {
+                                const opt2 = document.createElement('option');
+                                opt2.value = instr.id;
+                                opt2.textContent = option.textContent;
+                                opt2.disabled = option.disabled;
+                                instructorMultiSelect.appendChild(opt2);
+                            }
+                        });
+                    } else {
+                        instructorSelect.insertAdjacentHTML('beforeend',
+                            `<option value="" disabled>No qualified instructors found</option>`);
+                        }
+                        console.log("GetCourseDetails response:", data);
+
+                        if (isArchitecture && instructorMultiSelect) {
+                            rebuildInstructorMultiDropdown();
+                        }
+                })
+                .catch(err => {
+                    console.error("Error fetching course data:", err);
+                    instructorSelect.innerHTML = '<option value="">Error loading instructors</option>';
+                    if (isArchitecture && instructorMultiSelect) {
+                        rebuildInstructorMultiDropdown();
+                    }
+                });
+        }
+
+
+        // 1. Handle Course Change -> Fetch Details & Instructors
+        courseSelect.addEventListener('change', function () {
+            const courseId = this.value;
+            // Clear existing room requirements when course changes
+            containerRT.innerHTML = '';
+            if(emptyMsg) emptyMsg.style.display = 'block';
+            updateSum();
+            fetchCourseDetails(courseId);
+        });
+
+
+        btnAddRT.addEventListener('click', function (e) {
+            e.preventDefault();
+            const rtId = selectAddRT.value;
+            if (!rtId) return;
+
+            const rtName = roomTypeMap[rtId];
+
+            // Check if already exists
+            if (containerRT.querySelector(`.room-req-row[data-rt-id="${rtId}"]`)) {
+                // brief visual cue instead of alert
+                selectAddRT.classList.add('is-invalid');
+                setTimeout(() => selectAddRT.classList.remove('is-invalid'), 1000);
+                return;
+            }
+            selectAddRT.classList.remove('is-invalid');
+
+            // Hide empty message
+            if (emptyMsg) emptyMsg.style.display = 'none';
+
+            // Create HTML Row [Label] [Input] [Remove]
+            const rowHtml = `
+                <div class="input-group mb-2 room-req-row" data-rt-id="${rtId}">
+                    <span class="input-group-text" style="width: 50%">${rtName}</span>
+                    <input type="number" class="form-control rt-hours-input" min="1" placeholder="Hrs" required />
+                    <button type="button" class="btn btn-outline-danger remove-rt-btn"><i class="bi bi-trash"></i></button>
+                </div>
+            `;
+            containerRT.insertAdjacentHTML('beforeend', rowHtml);
+
+            // Focus and recompute sum
+            containerRT.lastElementChild.querySelector('.rt-hours-input').focus();
+            updateSum();
+        });
+
+        // 3. Delegate Events for Remove Button and Input Changes inside container
+        containerRT.addEventListener('click', function(e) {
+            if(e.target.closest('.remove-rt-btn')) {
+                e.target.closest('.room-req-row').remove();
+                if(containerRT.querySelectorAll('.room-req-row').length === 0) {
+                    if(emptyMsg) emptyMsg.style.display = 'block';
+                }
+                updateSum();
+            }
+        });
+
+        containerRT.addEventListener('input', function(e) {
+            if(e.target.classList.contains('rt-hours-input')) {
+                updateSum();
+            }
+        });
+
+        function updateSum() {
+            let sum = 0;
+            document.querySelectorAll('.rt-hours-input').forEach(input => {
+                sum += parseInt(input.value || 0);
+            });
+            sumDisplay.innerText = sum;
+            
+            // Visual validation against total hours
+            const total = parseInt(totalHoursInput.value || 0);
+            if(total > 0 && sum !== total) {
+                sumDisplay.className = "text-danger fw-bold";
+            } else {
+                sumDisplay.className = "text-success fw-bold";
+            }
+        }
+
+        // 4. SAVE HANDLER
+    document.getElementById('saveCourseBtn').addEventListener('click', function () {
+        // Validate form
+        const form = document.getElementById('manageCourseForm');
+        if (!form.checkValidity()) {
+            form.classList.add('was-validated');
+            return;
+        }
+
+        const roomRequirements = [];
+        const hoursPerRoomType = {};
+        let currentSum = 0;
+        let hasError = false;
+
+    // Collect room type data from .room-req-row/.rt-hours-input
+    document.querySelectorAll('.room-req-row').forEach(row => {
+        const id = parseInt(row.getAttribute('data-rt-id'));
+        const hrs = parseInt(row.querySelector('.rt-hours-input').value);
+        if (!hrs || hrs <= 0) {
+            hasError = true;
+        } else {
+            roomRequirements.push({ roomTypeId: id, hours: hrs });
+            hoursPerRoomType[id] = hrs;
+            currentSum += hrs;
+        }
+    });
+
+    const totalHours = parseInt(totalHoursInput.value || 0);
+    const courseId = document.getElementById('modalCourseId').value;
+
+    if (!courseId) {
+        document.getElementById('manageCourseErrors').textContent = "Please select a Course.";
+        hasError = true;
+    } else if (hasError) {
+        document.getElementById('manageCourseErrors').textContent =
+            "Please ensure all added room types have valid hours greater than 0.";
+    } else if (currentSum !== totalHours) {
+        document.getElementById('manageCourseErrors').textContent =
+            `Room hour breakdown (${currentSum} hrs) must match Total Hours (${totalHours} hrs).`;
+        hasError = true;
+    } else {
+        document.getElementById('manageCourseErrors').textContent = "";
+    }
+
+    if (hasError) {
+        alert("Please ensure all added room types have valid hours.");
+        return;
+    }
+
+        const sectionId = parseInt(document.getElementById('sectionId').value || '0', 10);
+        const batchId = parseInt(document.getElementById('modalBatchId').value || '0', 10);
+        const instructorId = document.getElementById('modalInstructorId').value || null;
+
+        const instructorIds = [];
+        if (isArchitecture && instructorMultiSelect) {
+            Array.from(instructorMultiSelect.selectedOptions || []).forEach(opt => {
+                if (opt && opt.value) instructorIds.push(opt.value);
+            });
+        }
+
+        const isFullDay = isArchitecture && fullDayCheckbox ? fullDayCheckbox.checked : false;
+
+        if (!batchId) {
+            document.getElementById('manageCourseErrors').textContent =
+                "Missing batch context. Please reopen the modal from a batch.";
+            return;
+        }
+
+        const btn = this;
+        btn.disabled = true;
+
+        const payload = {
+            sectionId: sectionId,
+            offeringId: @Model.OfferingId,
+            batchId: batchId,
+            courseId: parseInt(courseId, 10),
+            instructorId: instructorId,
+            instructorIds: instructorIds,
+            totalHours: totalHours,
+            isFullDay: isFullDay,
+            roomRequirements: roomRequirements   // [{ roomTypeId, hours }, ...]
+        };
+
+        fetch('@Url.Action("SaveCourseSection", "CourseOffering")', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(r => {
+            if (!r.ok) {
+                return r.json().then(j => { throw j; });
+            }
+            return r.json();
+        })
+        .then(json => {
+            if (!json.success) {
+                document.getElementById('manageCourseErrors').textContent =
+                    json.error || 'Failed to save course section.';
+                btn.disabled = false;
+                return;
+            }
+
+            // Success: reload page so table shows the new/updated row
+            location.reload();
+        })
+        .catch(err => {
+            console.error("Error saving section:", err);
+            let msg = 'Unexpected error saving course section.';
+            if (typeof err === 'object' && err) {
+                if (err.error) {
+                    msg = err.error;
+                    if (err.currentLoad != null && err.limit != null && err.projectedLoad != null) {
+                        msg += ` (Current: ${err.currentLoad}/${err.limit} hrs, Projected: ${err.projectedLoad} hrs)`;
+                    }
+                } else if (err.message) {
+                    msg = err.message;
+                }
+            }
+            document.getElementById('manageCourseErrors').textContent = msg;
+            btn.disabled = false;
+        });
+    });
+
+        // Initialize BatchId and handle Edit mode when the modal is shown
+        $('#manageCourseModal').on('show.bs.modal', function (event) {
+            const button = $(event.relatedTarget);
+            const batchId = button.data('batch-id');
+            const sectionId = button.data('section-id'); // Use 'section-id' for the unique record ID
+            const courseId = button.data('course-id'); // Use 'course-id' to pre-select course
+
+            // 1. Set context IDs for save operation
+            $('#modalBatchId').val(batchId);
+            $('#sectionId').val(sectionId || ''); // Clear sectionId if adding new
+
+            // Clear previous dynamic fields
+            containerRT.innerHTML = '';
+            if (emptyMsg) emptyMsg.style.display = 'block';
+            updateSum();
+            
+            // Clear static fields for Add mode
+            courseSelect.value = '';
+            instructorSelect.innerHTML = '<option value="">-- Select Course First --</option>';
+            if (instructorMultiSelect) instructorMultiSelect.innerHTML = '';
+            totalHoursInput.value = '';
+            if (fullDayCheckbox) fullDayCheckbox.checked = false;
+            if (isArchitecture && instructorMultiSelect) rebuildInstructorMultiDropdown();
+            
+            // 2. Handle EDIT operation: Load existing details
+            if (sectionId && courseId) {
+                // A. Pre-select the Course
+                courseSelect.value = courseId;
+                
+                // B. Fetch Course Details (Hours, Qualified Instructors)
+                // This is necessary to populate the total hours and the instructor dropdown.
+                fetchCourseDetails(courseId)
+                    .then(() => {
+                        // C. Fetch Specific Section Details (Instructor, Room Requirements)
+                        fetch(getSectionDetailsUrl(sectionId))
+                            .then(r => r.json())
+                            .then(sectionData => {
+                                // C.1 Set Instructor
+                                if (isArchitecture && instructorMultiSelect && Array.isArray(sectionData.instructorIds)) {
+                                    const selected = new Set(sectionData.instructorIds);
+                                    Array.from(instructorMultiSelect.options || []).forEach(opt => {
+                                        opt.selected = selected.has(opt.value);
+                                    });
+                                    rebuildInstructorMultiDropdown();
+                                } else if (sectionData.instructorId) {
+                                    instructorSelect.value = sectionData.instructorId;
+                                }
+
+                                if (fullDayCheckbox && sectionData.isFullDay != null) {
+                                    fullDayCheckbox.checked = !!sectionData.isFullDay;
+                                }
+
+                                // C.2 Set Room Requirements
+                                if (sectionData.roomRequirements) {
+                                    if (emptyMsg) emptyMsg.style.display = 'none';
+                                    
+                                    sectionData.roomRequirements.forEach(req => {
+                                        // Add the dynamic row for each requirement
+                                        addRoomTypeRow(req.roomTypeId, req.roomTypeName, req.hoursPerWeek);
+                                    });
+                                    updateSum();
+                                }
+                            })
+                            .catch(err => console.error("Error loading section details:", err));
+                    });
+            }
+        });
+
+        // To make C.2 work, we need a helper function to dynamically add room rows:
+        function addRoomTypeRow(rtId, rtName, hours) {
+            const rowHtml = `
+                <div class="input-group mb-2 room-req-row" data-rt-id="${rtId}">
+                    <span class="input-group-text">${rtName}</span>
+                    <input type="number" class="form-control rt-hours-input" min="1" placeholder="Hrs" value="${hours || ''}" required />
+                    <button type="button" class="btn btn-outline-danger remove-rt-btn">X</button>
+                </div>
+            `;
+            containerRT.insertAdjacentHTML('beforeend', rowHtml);
+        }
+    });
+</script>
+ *@
+@model ScheduleCentral.Controllers.ManageOfferingViewModel
+@{
+    var allCourses = ViewBag.AllCourses as SelectList;
+    var RoomTypes = ViewBag.RoomTypes as IEnumerable<ScheduleCentral.Models.RoomType>;
+}
+
+<div class="modal fade" id="manageCourseModal" tabindex="-1" aria-labelledby="manageCourseTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form id="manageCourseForm" class="needs-validation" novalidate>
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold" id="manageCourseTitle">
+                        <i class="bi bi-journal-plus me-2"></i>Manage Course Offering
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <input type="hidden" id="sectionId" name="SectionId" />
+                    <input type="hidden" id="modalBatchId" name="BatchId" />
+
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">Course</label>
+                            <select id="modalCourseId" name="CourseId" class="form-select shadow-sm" required>
+                                <option value="">-- Select Course --</option>
+                                @if (allCourses != null)
+                                {
+                                    foreach (var c in allCourses)
+                                    {
+                                        <option value="@c.Value">@c.Text</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Total Hours</label>
+                            <div class="input-group shadow-sm">
+                                <input id="modalContactHours" name="ContactHours" type="number" class="form-control bg-white" readonly />
+                                <span class="input-group-text">hrs</span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Assigned Instructor</label>
+                            <select id="modalInstructorId" name="InstructorId" class="form-select shadow-sm">
+                                <option value="">-- Select Course First --</option>
+                            </select>
+                        </div>
+
+                        @if ((Model.Department ?? "").Trim().Equals("Architecture", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold">Qualified Instructors (Architecture)</label>
+                                <div class="dropdown w-100">
+                                    <button id="modalInstructorIdsDropdownBtn" class="btn btn-outline-secondary dropdown-toggle w-100 text-start shadow-sm" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        Select instructors
+                                    </button>
+                                    <ul id="modalInstructorIdsDropdownMenu" class="dropdown-menu w-100 shadow" style="max-height: 320px; overflow:auto;"></ul>
+                                </div>
+                                <select id="modalInstructorIds" name="InstructorIds" class="form-select d-none" multiple></select>
+                            </div>
+
+                            <div class="col-md-12">
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" id="modalIsFullDay" role="switch">
+                                    <label class="form-check-label fw-medium" for="modalIsFullDay">Full day session required</label>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="col-12 mt-4">
+                            <label class="form-label fw-bold border-bottom w-100 pb-1">Room Requirements Breakdown</label>
+                            <div class="card border-1 shadow-sm mt-2">
+                                <div class="card-body bg-light p-3">
+                                    <div class="input-group mb-3">
+                                        <select id="roomTypeAdderSelect" class="form-select">
+                                            <option value="">-- Pick a Room Type to Add --</option>
+                                            @if (RoomTypes != null)
+                                            {
+                                                foreach (var rt in RoomTypes)
+                                                {
+                                                    <option value="@rt.Id">@rt.Name</option>
+                                                }
+                                            }
+                                        </select>
+                                        <button type="button" class="btn btn-dark" id="btnAddRoomType">
+                                            <i class="bi bi-plus-lg"></i> Add
+                                        </button>
+                                    </div>
+
+                                    <div id="roomRequirementsContainer" class="rounded border p-2 bg-white min-vh-10">
+                                        <div id="emptyRoomMsg" class="text-muted small fst-italic text-center py-3">
+                                            No room requirements added yet.
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-between align-items-center mt-3 px-1">
+                                        <span class="small text-muted">Sum of breakdown must match total hours.</span>
+                                        <div class="h6 mb-0">Total: <span id="hoursSumDisplay">0</span> / <span id="targetHoursDisplay">0</span> hrs</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="manageCourseErrors" class="mt-3 alert alert-danger d-none py-2 small"></div>
+                </div>
+
+                <div class="modal-footer bg-light px-4">
+                    <button type="button" class="btn btn-link text-secondary text-decoration-none mr-auto" data-bs-dismiss="modal">Cancel</button>
+                    <button id="saveCourseBtn" type="button" class="btn btn-primary px-4 shadow-sm">
+                        <i class="bi bi-check-lg me-1"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modalEl = document.getElementById('manageCourseModal');
+        const courseSelect = document.getElementById('modalCourseId');
+        const instructorSelect = document.getElementById('modalInstructorId');
+        const instructorMultiSelect = document.getElementById('modalInstructorIds');
+        const instructorMultiDropdownBtn = document.getElementById('modalInstructorIdsDropdownBtn');
+        const instructorMultiDropdownMenu = document.getElementById('modalInstructorIdsDropdownMenu');
+        const fullDayCheckbox = document.getElementById('modalIsFullDay');
+        const totalHoursInput = document.getElementById('modalContactHours');
+        const targetHoursDisplay = document.getElementById('targetHoursDisplay');
+        const errorDiv = document.getElementById('manageCourseErrors');
+
+        const getSectionDetailsUrl = (sectionId) => `@Url.Action("GetSectionDetails", "CourseOffering")?sectionId=${sectionId}`;
+        const getCourseDetailsUrl = '@Url.Action("GetCourseDetails", "CourseOffering")';
+
+        const btnAddRT = document.getElementById('btnAddRoomType');
+        const selectAddRT = document.getElementById('roomTypeAdderSelect');
+        const containerRT = document.getElementById('roomRequirementsContainer');
+        const emptyMsg = document.getElementById('emptyRoomMsg');
+        const sumDisplay = document.getElementById('hoursSumDisplay');
+
+        const isArchitecture = ('@Model.Department' || '').trim().toLowerCase() === 'architecture';
+
+        // Fix for Modal opening: Use Vanilla BS5 listener
+        modalEl.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const batchId = button.getAttribute('data-batch-id');
+            const sectionId = button.getAttribute('data-section-id');
+            const courseId = button.getAttribute('data-course-id');
+
+            document.getElementById('modalBatchId').value = batchId || '';
+            document.getElementById('sectionId').value = sectionId || '';
+            errorDiv.classList.add('d-none');
+            errorDiv.textContent = '';
+
+            // UI Reset
+            containerRT.innerHTML = '';
+            if (emptyMsg) emptyMsg.style.display = 'block';
+            courseSelect.value = '';
+            instructorSelect.innerHTML = '<option value="">-- Select Course First --</option>';
+            if (instructorMultiSelect) instructorMultiSelect.innerHTML = '';
+            totalHoursInput.value = '';
+            targetHoursDisplay.innerText = '0';
+            updateSum();
+
+            if (sectionId && courseId) {
+                courseSelect.value = courseId;
+                fetchCourseDetails(courseId).then(() => {
+                    fetch(getSectionDetailsUrl(sectionId))
+                        .then(r => r.json())
+                        .then(sectionData => {
+                            if (isArchitecture && instructorMultiSelect && Array.isArray(sectionData.instructorIds)) {
+                                const selected = new Set(sectionData.instructorIds.map(String));
+                                Array.from(instructorMultiSelect.options).forEach(opt => {
+                                    opt.selected = selected.has(String(opt.value));
+                                });
+                                rebuildInstructorMultiDropdown();
+                            } else if (sectionData.instructorId) {
+                                instructorSelect.value = sectionData.instructorId;
+                            }
+
+                            if (fullDayCheckbox) fullDayCheckbox.checked = !!sectionData.isFullDay;
+
+                            if (sectionData.roomRequirements && sectionData.roomRequirements.length > 0) {
+                                if (emptyMsg) emptyMsg.style.display = 'none';
+                                sectionData.roomRequirements.forEach(req => {
+                                    addRoomTypeRow(req.roomTypeId, req.roomTypeName, req.hoursPerWeek);
+                                });
+                                updateSum();
+                            }
+                        })
+                        .catch(err => console.error("Error loading section details:", err));
+                });
+            }
+        });
+
+        function updateInstructorMultiDropdownButton() {
+            if (!isArchitecture || !instructorMultiDropdownBtn || !instructorMultiSelect) return;
+            const selected = Array.from(instructorMultiSelect.selectedOptions).map(o => o.textContent.trim());
+            instructorMultiDropdownBtn.textContent = selected.length === 0 ? 'Select instructors' : 
+                                                     selected.length <= 2 ? selected.join(', ') : 
+                                                     `${selected.length} instructors selected`;
+        }
+
+        function rebuildInstructorMultiDropdown() {
+            if (!isArchitecture || !instructorMultiDropdownMenu) return;
+            instructorMultiDropdownMenu.innerHTML = '';
+            const opts = Array.from(instructorMultiSelect.options);
+            if (opts.length === 0) {
+                instructorMultiDropdownMenu.innerHTML = '<li><span class="dropdown-item-text text-muted small">Select course first</span></li>';
+            } else {
+                opts.forEach(opt => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <div class="dropdown-item py-1">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" data-value="${opt.value}" ${opt.selected ? 'checked' : ''} ${opt.disabled ? 'disabled' : ''}>
+                                <label class="form-check-label w-100">${opt.textContent}</label>
+                            </div>
+                        </div>`;
+                    instructorMultiDropdownMenu.appendChild(li);
+                });
+            }
+            updateInstructorMultiDropdownButton();
+        }
+
+        if (isArchitecture && instructorMultiDropdownMenu) {
+            instructorMultiDropdownMenu.addEventListener('change', function (e) {
+                if (e.target.type === 'checkbox') {
+                    const val = e.target.dataset.value;
+                    const opt = Array.from(instructorMultiSelect.options).find(o => o.value === val);
+                    if (opt) opt.selected = e.target.checked;
+                    updateInstructorMultiDropdownButton();
+                }
+            });
+        }
+
+        const roomTypeMap = {};
+        @if (RoomTypes != null) {
+            @foreach (var rt in RoomTypes) {
+                <text>roomTypeMap[@rt.Id] = '@Html.Raw(rt.Name.Replace("'", "\\'"))';</text>
+            }
+        }
+
+        function fetchCourseDetails(courseId) {
+            instructorSelect.innerHTML = '<option value="">Loading instructors...</option>';
+            if (instructorMultiSelect) instructorMultiSelect.innerHTML = '';
+            
+            const semester = '@Model.Semester';
+            const academicYear = '@Model.AcademicYear';
+            
+            return fetch(`${getCourseDetailsUrl}?courseId=${courseId}&semester=${encodeURIComponent(semester)}&academicYear=${encodeURIComponent(academicYear)}`)
+                .then(r => r.json())
+                .then(data => {
+                    totalHoursInput.value = data.contactHours;
+                    targetHoursDisplay.innerText = data.contactHours;
+                    instructorSelect.innerHTML = '<option value="">-- Unassigned --</option>';
+
+                    (data.qualifiedInstructors || []).forEach(instr => {
+                        const label = `${instr.name} (${instr.currentLoad}/${instr.maxLoad} hrs)`;
+                        const opt = new Option(label, instr.id);
+                        if (instr.isOverloaded) {
+                            opt.disabled = true;
+                            opt.text += " (Overloaded)";
+                        }
+                        instructorSelect.add(opt.cloneNode(true));
+                        if (instructorMultiSelect) instructorMultiSelect.add(opt);
+                    });
+
+                    if (isArchitecture) rebuildInstructorMultiDropdown();
+                    updateSum();
+                })
+                .catch(err => {
+                    instructorSelect.innerHTML = '<option value="">Error loading</option>';
+                });
+        }
+
+        courseSelect.addEventListener('change', function () {
+            containerRT.innerHTML = '';
+            if(emptyMsg) emptyMsg.style.display = 'block';
+            fetchCourseDetails(this.value);
+        });
+
+        btnAddRT.addEventListener('click', function () {
+            const rtId = selectAddRT.value;
+            if (!rtId) return;
+            if (containerRT.querySelector(`[data-rt-id="${rtId}"]`)) {
+                selectAddRT.classList.add('is-invalid');
+                setTimeout(() => selectAddRT.classList.remove('is-invalid'), 1000);
+                return;
+            }
+            if (emptyMsg) emptyMsg.style.display = 'none';
+            addRoomTypeRow(rtId, roomTypeMap[rtId], "");
+            updateSum();
+        });
+
+        function addRoomTypeRow(rtId, rtName, hours) {
+            const rowHtml = `
+                <div class="input-group mb-2 room-req-row border rounded shadow-sm overflow-hidden" data-rt-id="${rtId}">
+                    <span class="input-group-text border-0 bg-white fw-medium" style="width: 50%">${rtName}</span>
+                    <input type="number" class="form-control border-0 rt-hours-input" min="1" placeholder="Hrs" value="${hours}" required />
+                    <button type="button" class="btn btn-outline-danger border-0 remove-rt-btn"><i class="bi bi-x-lg"></i></button>
+                </div>`;
+            containerRT.insertAdjacentHTML('beforeend', rowHtml);
+        }
+
+        containerRT.addEventListener('click', e => {
+            if (e.target.closest('.remove-rt-btn')) {
+                e.target.closest('.room-req-row').remove();
+                if (!containerRT.querySelector('.room-req-row')) emptyMsg.style.display = 'block';
+                updateSum();
+            }
+        });
+
+        containerRT.addEventListener('input', e => {
+            if (e.target.classList.contains('rt-hours-input')) updateSum();
+        });
+
+        function updateSum() {
+            let sum = 0;
+            document.querySelectorAll('.rt-hours-input').forEach(i => sum += parseInt(i.value || 0));
+            sumDisplay.innerText = sum;
+            const total = parseInt(totalHoursInput.value || 0);
+            sumDisplay.className = (total > 0 && sum !== total) ? "text-danger fw-bold" : "text-success fw-bold";
+        }
+
+        document.getElementById('saveCourseBtn').addEventListener('click', function () {
+            const form = document.getElementById('manageCourseForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
+            const roomRequirements = [];
+            let currentSum = 0;
+            document.querySelectorAll('.room-req-row').forEach(row => {
+                const hrs = parseInt(row.querySelector('.rt-hours-input').value);
+                roomRequirements.push({ roomTypeId: parseInt(row.dataset.rtId), hours: hrs });
+                currentSum += hrs;
+            });
+
+            const totalHours = parseInt(totalHoursInput.value || 0);
+            if (currentSum !== totalHours) {
+                errorDiv.textContent = `Hour breakdown (${currentSum}) does not match total hours (${totalHours}).`;
+                errorDiv.classList.remove('d-none');
+                return;
+            }
+
+            const btn = this;
+            btn.disabled = true;
+            const payload = {
+                sectionId: parseInt(document.getElementById('sectionId').value || '0'),
+                offeringId: @Model.OfferingId,
+                batchId: parseInt(document.getElementById('modalBatchId').value),
+                courseId: parseInt(courseSelect.value),
+                instructorId: instructorSelect.value || null,
+                instructorIds: isArchitecture ? Array.from(instructorMultiSelect.selectedOptions).map(o => o.value) : [],
+                totalHours: totalHours,
+                isFullDay: fullDayCheckbox ? fullDayCheckbox.checked : false,
+                roomRequirements: roomRequirements
+            };
+
+            fetch('@Url.Action("SaveCourseSection", "CourseOffering")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json().then(data => r.ok ? data : Promise.reject(data)))
+            .then(() => location.reload())
+            .catch(err => {
+                errorDiv.textContent = err.error || 'Failed to save.';
+                errorDiv.classList.remove('d-none');
+                btn.disabled = false;
+            });
+        });
+    });
+</script>

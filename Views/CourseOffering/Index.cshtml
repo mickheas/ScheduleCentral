@@ -1,0 +1,364 @@
+@* @model ScheduleCentral.Models.ViewModels.CourseOfferingIndexViewModel
+
+@{
+    ViewData["Title"] = "Course Offerings";
+    //var offeringCards = ViewBag.OfferingCards as List<ScheduleCentral.Controllers.CourseOfferingIndexCardViewModel>;
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+<div class="d-flex justify-content-between mb-3">
+    <h2 class="h4">Course Offerings</h2>
+
+    <a class="btn btn-primary" asp-action="Create" role="button">
+        <i class="bi bi-plus-circle"></i> Create Offering
+    </a>
+</div>
+
+<div class="row">
+   
+    @if (Model.CourseOfferings == null || !Model.CourseOfferings.Any())
+    {
+        <div class="col-12">
+            <div class="card border-0 shadow-sm p-4 text-center text-muted">
+                <p class="mb-0">No course offerings yet. Click <strong>Create Offering</strong> to start one.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+       
+        foreach (var item in Model.CourseOfferings)
+        {
+            <div class="col-md-8">
+                <div class="card shadow-sm mb-3 h-100">
+                    <div class="card-body d-flex flex-column">
+                        <div class="mb-2">
+                            <h5 class="card-title mb-0">@item.Department</h5>
+                            <small class="text-muted">@item.AcademicYear — Semester @item.Semester</small>
+                        </div>
+
+                        <div class="mt-2 mb-3">
+                            <span class="badge @(
+                                item.Status == OfferingStatus.Submitted ? "bg-warning text-dark" :
+                                item.Status == OfferingStatus.Approved ? "bg-success" :
+                                item.Status == OfferingStatus.Rejected ? "bg-danger" : "bg-secondary text-white")">
+                                @item.Status
+                            </span>
+                        </div>
+
+                        
+                        @if (item.Status == OfferingStatus.Creation || item.Status == OfferingStatus.Draft)
+                        {
+                            <div class="mt-3 mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <small class="text-muted fw-semibold">Completion Progress</small>
+                                    <small class="text-muted fw-bold">@item.ProgressPercentage%</small>
+                                </div>
+                                <div class="progress" style="height: 10px;">
+                                    <div class="progress-bar @GetProgressBarColor(item.ProgressPercentage)" 
+                                         role="progressbar" 
+                                         style="width: @item.ProgressPercentage%"
+                                         aria-valuenow="@item.ProgressPercentage" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                    </div>
+                                </div>
+                                <small class="text-muted mt-1 d-block" style="font-size: 0.75rem;">
+                                    <i class="bi @GetProgressIcon(item.ProgressPercentage) me-1"></i>@GetProgressMessage(item.ProgressPercentage)
+                                </small>
+                            </div>
+                        }
+
+                        <p class="card-text text-muted small mb-3">
+                            Batches: <strong>@(item.BatchCount)</strong>
+                        </p>
+
+                        <div class="mt-auto d-flex gap-2">
+                            <a class="btn btn-outline-primary btn-sm flex-grow-1"
+                                asp-action="ManageOffering"
+                                asp-route-offeringId="@item.Id">
+                                <i class="bi bi-gear me-1"></i> Manage
+                            </a>
+
+                            <button class="btn btn-outline-secondary btn-sm"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editOfferingModal"
+                                    data-id="@item.Id"
+                                    data-academicyear="@item.AcademicYear"
+                                    data-semester="@item.Semester"
+                                    data-department="@item.Department">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+
+                            <button class="btn btn-outline-danger btn-sm"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#deleteOfferingModal"
+                                    data-id="@item.Id">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                        @if (item.Status == OfferingStatus.Rejected)
+                            {
+                                <a class="btn btn-sm btn-outline-danger"
+                                asp-action="Feedback"
+                                asp-route-offeringId="@item.Id">
+                                    View Feedback
+                                </a>
+                            }
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+
+@await Html.PartialAsync("_EditOfferingModal")
+@await Html.PartialAsync("_DeleteOfferingModal")
+
+@functions {
+    string GetProgressBarColor(int progress)
+    {
+        return progress switch
+        {
+            <= 25 => "bg-danger",
+            <= 50 => "bg-warning",
+            <= 75 => "bg-info",
+            _ => "bg-success"
+        };
+    }
+
+    string GetProgressIcon(int progress)
+    {
+        return progress switch
+        {
+            <= 25 => "bi-exclamation-circle",
+            <= 50 => "bi-arrow-right-circle",
+            <= 75 => "bi-check-circle",
+            _ => "bi-check-circle-fill"
+        };
+    }
+
+    string GetProgressMessage(int progress)
+    {
+        return progress switch
+        {
+            25 => "Add batches (year levels) to continue",
+            50 => "Add courses to your batches",
+            75 => "Assign instructors and room requirements",
+            100 => "Ready to submit!",
+            _ => "Getting started..."
+        };
+    }
+}
+ *@
+@model ScheduleCentral.Models.ViewModels.CourseOfferingIndexViewModel
+
+@{
+    ViewData["Title"] = "Course Offerings";
+}
+
+<style>
+    .offering-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border: 1px solid #e2e8f0;
+    }
+    .offering-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.05) !important;
+    }
+    .status-badge {
+        font-size: 0.7rem;
+        padding: 0.4em 0.8em;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 700;
+    }
+    .dept-icon-box {
+        width: 45px;
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: #f8fafc;
+        color: #6366f1;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 fw-bold text-dark mb-1">Course Offerings</h1>
+        <p class="text-muted small mb-0">Track and manage seasonal academic schedules.</p>
+    </div>
+
+    <a class="btn btn-indigo shadow-sm px-4 rounded-pill" asp-action="Create" role="button">
+        <i class="bi bi-plus-lg me-2"></i>Create Offering
+    </a>
+</div>
+
+<div class="row g-4">
+    @if (Model.CourseOfferings == null || !Model.CourseOfferings.Any())
+    {
+        <div class="col-12">
+            <div class="card border-0 shadow-sm p-5 text-center">
+                <div class="mb-3">
+                    <i class="bi bi-calendar-x text-muted display-4"></i>
+                </div>
+                <h5 class="text-dark fw-bold">No Offerings Found</h5>
+                <p class="text-muted mb-4">Begin by creating your first course offering for the upcoming semester.</p>
+                <a class="btn btn-outline-primary px-4" asp-action="Create">Get Started</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        foreach (var item in Model.CourseOfferings)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm offering-card border-0 rounded-4 overflow-hidden">
+                    <div class="card-body p-4 d-flex flex-column">
+                        
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="dept-icon-box shadow-sm">
+                                <i class="bi bi-mortarboard-fill fs-4"></i>
+                            </div>
+                            <span class="badge status-badge rounded-pill @(
+                                item.Status == OfferingStatus.Submitted ? "bg-warning-subtle text-warning border border-warning-subtle" :
+                                item.Status == OfferingStatus.Approved ? "bg-success-subtle text-success border border-success-subtle" :
+                                item.Status == OfferingStatus.Rejected ? "bg-danger-subtle text-danger border border-danger-subtle" : 
+                                "bg-light text-muted border")">
+                                @item.Status
+                            </span>
+                        </div>
+
+                        <div class="mb-3">
+                            <h5 class="fw-bold text-dark mb-1">@item.Department</h5>
+                            <div class="d-flex align-items-center text-muted small">
+                                <i class="bi bi-calendar3 me-2"></i>
+                                <span>AY @item.AcademicYear</span>
+                                <span class="mx-2">•</span>
+                                <span>Semester @item.Semester</span>
+                            </div>
+                        </div>
+
+                        @if (item.Status == OfferingStatus.Creation || item.Status == OfferingStatus.Draft)
+                        {
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-muted fw-semibold" style="font-size: 0.75rem;">COMPLETION</span>
+                                    <span class="text-indigo fw-bold" style="font-size: 0.75rem;">@item.ProgressPercentage%</span>
+                                </div>
+                                <div class="progress rounded-pill" style="height: 6px;">
+                                    <div class="progress-bar @GetProgressBarColor(item.ProgressPercentage)" 
+                                         role="progressbar" 
+                                         style="width: @item.ProgressPercentage%">
+                                    </div>
+                                </div>
+                                <div class="mt-2 d-flex align-items-center text-muted" style="font-size: 0.7rem;">
+                                    <i class="bi @GetProgressIcon(item.ProgressPercentage) me-1"></i>
+                                    @GetProgressMessage(item.ProgressPercentage)
+                                </div>
+                            </div>
+                        }
+
+                        <div class="bg-light rounded-3 p-2 px-3 mb-4 d-flex justify-content-between align-items-center">
+                            <span class="small text-muted fw-medium">Active Batches</span>
+                            <span class="badge bg-white text-dark border shadow-sm rounded-pill">@item.BatchCount</span>
+                        </div>
+
+                        <div class="mt-auto">
+                            <div class="d-flex gap-2">
+                                <a class="btn btn-indigo flex-grow-1 shadow-sm fw-semibold btn-sm"
+                                   asp-action="ManageOffering"
+                                   asp-route-offeringId="@item.Id">
+                                    <i class="bi bi-sliders2-vertical me-2"></i>Manage
+                                </a>
+
+                                <button class="btn btn-outline-light border text-secondary btn-sm px-3"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#editOfferingModal"
+                                        data-id="@item.Id"
+                                        data-academicyear="@item.AcademicYear"
+                                        data-semester="@item.Semester"
+                                        data-department="@item.Department">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+
+                                <button class="btn btn-outline-light border text-danger btn-sm px-3"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#deleteOfferingModal"
+                                        data-id="@item.Id">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+
+                            @if (item.Status == OfferingStatus.Rejected)
+                            {
+                                <a class="btn btn-sm btn-danger w-100 mt-2 fw-bold shadow-sm"
+                                   asp-action="Feedback"
+                                   asp-route-offeringId="@item.Id">
+                                    <i class="bi bi-chat-left-dots me-2"></i>Review Feedback
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@await Html.PartialAsync("_EditOfferingModal")
+@await Html.PartialAsync("_DeleteOfferingModal")
+
+@functions {
+    string GetProgressBarColor(int progress)
+    {
+        return progress switch
+        {
+            <= 25 => "bg-danger",
+            <= 50 => "bg-warning",
+            <= 75 => "bg-info",
+            _ => "bg-emerald"
+        };
+    }
+
+    string GetProgressIcon(int progress)
+    {
+        return progress switch
+        {
+            <= 25 => "bi-exclamation-circle",
+            <= 50 => "bi-arrow-right-circle",
+            <= 75 => "bi-check-circle",
+            _ => "bi-check-circle-fill"
+        };
+    }
+
+    string GetProgressMessage(int progress)
+    {
+        return progress switch
+        {
+            25 => "Add batches to continue",
+            50 => "Populate course lists",
+            75 => "Assign instructors/rooms",
+            100 => "Ready for submission",
+            _ => "Initializing..."
+        };
+    }
+}
+
+<style>
+    .btn-indigo { background-color: #6366f1; color: white; border: none; }
+    .btn-indigo:hover { background-color: #4f46e5; color: white; }
+    .bg-emerald { background-color: #10b981 !important; }
+    .text-indigo { color: #6366f1; }
+</style>

@@ -1,0 +1,91 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - CSMS </title>
+    
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/ScheduleCentral.styles.css" asp-append-version="true" />
+    
+    <style>
+        /* Shared Aesthetic Styles */
+        body {
+            /* A nice subtle gradient background for the whole auth area */
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        
+        .auth-card {
+            border: none;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .auth-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            border: none;
+        }
+
+        .btn-gradient-primary {
+            background: linear-gradient(45deg, #4e73df 0%, #224abe 100%);
+            border: none;
+            color: white;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn-gradient-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(78, 115, 223, 0.4);
+            color: white;
+        }
+
+        .form-floating > label {
+            color: #6c757d;
+        }
+
+        .form-control:focus {
+            border-color: #4e73df;
+            box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
+        }
+    </style>
+</head>
+<body class="d-flex align-items-center py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6 col-xl-5">
+                <div class="auth-card bg-white">
+                    <!-- Common Header for all Auth Pages -->
+                    <div class="auth-header">
+                        <i class="bi bi-calendar-check mb-2" style="font-size: 2.5rem;"></i>
+                        <h3 class="fw-bold mb-0">CSMS</h3>
+                        <p class="mb-0 opacity-75 small">Class Scheduling Mangement System</p>
+                    </div>
+                    
+                    <div class="p-4 p-md-5">
+                        <partial name="_TempDataAlerts" />
+                        @RenderBody()
+                    </div>
+                </div>
+
+                <div class="text-center mt-4 text-muted small">
+                    &copy; 2025 CSMS. <a asp-area="" asp-controller="Home" asp-action="Privacy" class="text-muted text-decoration-none">Privacy Policy</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

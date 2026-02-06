@@ -1,0 +1,13 @@
+
+@* @{
+    Layout = "/Views/Shared/_Layout.cshtml";
+} *@
+@{
+    /*
+    This file is the MOST IMPORTANT FIX.
+    It tells all pages in the /Identity/ folder (like Login, Manage, etc.)
+    to use the default Identity layout file, NOT your main _Layout.cshtml.
+    This PREVENTS your React app from loading on the login page.
+    */
+    Layout = "/Areas/Identity/Pages/Account/Manage/_Layout.cshtml";
+}

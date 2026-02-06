@@ -1,0 +1,112 @@
+@* @model IEnumerable<ScheduleCentral.Services.InstructorLoadViewModel>
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Instructor Load";
+}
+
+<div class="card shadow-sm mt-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Faculty Load Status</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Instructor</th>
+                    <th>Department</th>
+                    <th>Assigned Load</th>
+                    <th>Limit</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var instr in Model)
+                {
+                    <tr>
+                        <td>@instr.FullName</td>
+                        <td><span class="badge bg-light text-dark border">@instr.Department</span></td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <span class="fw-bold me-2">@instr.CurrentLoad</span>
+                                <div class="progress flex-grow-1" style="height: 6px; width: 100px;">
+                                    @{
+                                        var pct = (instr.CurrentLoad * 100) / (instr.AvailableHours > 0 ? instr.AvailableHours : 1);
+                                        var color = pct > 100 ? "bg-danger" : (pct > 80 ? "bg-warning" : "bg-success");
+                                    }
+                                    <div class="progress-bar @color" style="width: @pct%"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>@instr.AvailableHours</td>
+                        <td>
+                            @if(instr.IsOverloaded) {
+                                <span class="badge bg-danger">Overloaded</span>
+                            } else {
+                                <span class="badge bg-success">Available</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div> *@
+@model IEnumerable<ScheduleCentral.Services.InstructorLoadViewModel>
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Instructor Load";
+}
+
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Instructor Load</h5>
+            <small class="text-muted">Filter by semester using the controller parameter</small>
+        </div>
+
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Instructor</th>
+                            <th>Department</th>
+                            <th>Assigned Load</th>
+                            <th>Limit</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var instr in Model)
+                        {
+                            var pct = (instr.AvailableHours > 0) ? (instr.CurrentLoad * 100) / instr.AvailableHours : 0;
+                            <tr>
+                                <td>@instr.FullName</td>
+                                <td>@instr.Department</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <strong>@instr.CurrentLoad</strong>
+                                        <div class="progress" style="width:160px; height:8px;">
+                                            <div class="progress-bar @(pct > 100 ? "bg-danger" : pct > 80 ? "bg-warning" : "bg-success")" style="width:@(pct)%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>@instr.AvailableHours</td>
+                                <td>
+                                    @if (instr.IsOverloaded)
+                                    {
+                                        <span class="badge bg-danger">Overloaded</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">Available</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

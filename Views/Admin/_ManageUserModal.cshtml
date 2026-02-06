@@ -1,0 +1,193 @@
+@* @model ScheduleCentral.Models.ViewModels.AdminManageUserViewModel
+
+<div class="modal-header">
+    <h5 class="modal-title">Manage User: @Model.FullName</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    <form asp-action="ManageUser" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input asp-for="Email" class="form-control" disabled readonly />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="SelectedRoles" class="form-label"></label>
+            <div class="border rounded-3 p-3 bg-light-subtle">
+                <div class="row g-2">
+                    @{ var roleIndex = 0; }
+                    @foreach (var role in Model.Roles)
+                    {
+                        var roleKey = (role.Value ?? role.Text ?? "").Trim();
+                        var safe = new string(roleKey.Where(char.IsLetterOrDigit).ToArray());
+                        if (string.IsNullOrWhiteSpace(safe)) safe = $"idx{roleIndex}";
+                        var rid = $"manageRole_{safe}_{Model.Id}_{roleIndex}";
+                        <div class="col-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="@rid" name="SelectedRoles" value="@role.Value" @(role.Selected ? "checked" : null) />
+                                <label class="form-check-label" for="@rid">@role.Text</label>
+                            </div>
+                        </div>
+                        roleIndex++;
+                    }
+                </div>
+            </div>
+            <span asp-validation-for="SelectedRoles" class="text-danger"></span>
+        </div>
+
+        <div class="border rounded-3 p-3 bg-light-subtle mb-3">
+            <div class="fw-semibold mb-2">Reset Password</div>
+
+            <div class="mb-3">
+                <label asp-for="NewPassword" class="form-label"></label>
+                <input asp-for="NewPassword" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="NewPassword" class="text-danger"></span>
+            </div>
+
+            <div class="mb-0">
+                <label asp-for="ConfirmPassword" class="form-label"></label>
+                <input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+            </div>
+        </div>
+
+        @if (!Model.IsAdminUser)
+        {
+            <div class="mb-3 form-check">
+                @{ var activeId = $"isActiveCheck_{Model.Id}"; }
+                <input class="form-check-input" type="checkbox" asp-for="IsActive" id="@activeId">
+                <label class="form-check-label" for="@activeId">
+                    Account Active (Approved)
+                </label>
+                <div class="form-text text-muted">
+                    Unchecking this will prevent the user from logging in.
+                </div>
+            </div>
+        }
+
+        <div class="modal-footer px-0 pb-0 d-flex justify-content-between align-items-center">
+            <div>
+                @if (!Model.IsAdminUser)
+                {
+                    <button type="submit" name="command" value="Delete" class="btn btn-outline-danger me-2"
+                            onclick="return confirm('Are you sure you want to permanently delete this user account?');">
+                        Delete User
+                    </button>
+                }
+            </div>
+            <div class="ms-auto">
+                <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Close</button>
+                <button type="submit" name="command" value="Save" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </form>
+</div> *@
+@model ScheduleCentral.Models.ViewModels.AdminManageUserViewModel
+
+<div class="modal-header border-bottom-0 pb-0">
+    <div class="d-flex align-items-center">
+        <div class="p-2 rounded-3 bg-warning-subtle me-3">
+            <i class="bi bi-person-gear text-warning fs-4"></i>
+        </div>
+        <div>
+            <h5 class="modal-title fw-bold text-dark">@Model.FullName</h5>
+            <p class="text-muted small mb-0">System ID: <span class="text-indigo">@Model.Id</span></p>
+        </div>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<div class="modal-body p-4">
+    <form asp-action="ManageUser" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+        <div class="mb-4">
+            <label class="form-label fw-semibold small text-uppercase text-muted" style="letter-spacing: 0.05em;">Principal Email</label>
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope-check text-muted"></i></span>
+                <input asp-for="Email" class="form-control border-start-0 ps-0 bg-light" disabled readonly />
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-semibold small text-uppercase text-muted" style="letter-spacing: 0.05em;">Permissions Group</label>
+            <div class="border rounded-3 p-3" style="background-color: #f8fafc; border-style: dashed !important;">
+                <div class="row g-2">
+                    @{ var roleIndex = 0; }
+                    @foreach (var role in Model.Roles)
+                    {
+                        var roleKey = (role.Value ?? role.Text ?? "").Trim();
+                        var safe = new string(roleKey.Where(char.IsLetterOrDigit).ToArray());
+                        if (string.IsNullOrWhiteSpace(safe)) safe = $"idx{roleIndex}";
+                        var rid = $"manageRole_{safe}_{Model.Id}_{roleIndex}";
+                        <div class="col-6">
+                            <div class="form-check custom-checkbox">
+                                <input class="form-check-input" type="checkbox" id="@rid" name="SelectedRoles" value="@role.Value" @(role.Selected ? "checked" : null) />
+                                <label class="form-check-label fw-medium" for="@rid">@role.Text</label>
+                            </div>
+                        </div>
+                        roleIndex++;
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="p-3 rounded-3 mb-4" style="background-color: #fffbeb; border: 1px solid #fef3c7;">
+            <div class="d-flex align-items-center mb-3">
+                <i class="bi bi-key-fill text-warning me-2"></i>
+                <div class="fw-bold text-warning-emphasis small text-uppercase">Security Override</div>
+            </div>
+
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <input asp-for="NewPassword" class="form-control form-control-sm" placeholder="New Password" autocomplete="new-password" />
+                    <span asp-validation-for="NewPassword" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <input asp-for="ConfirmPassword" class="form-control form-control-sm" placeholder="Confirm" autocomplete="new-password" />
+                    <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                </div>
+            </div>
+        </div>
+
+        @if (!Model.IsAdminUser)
+        {
+            <div class="mb-4 p-2 rounded-3 border bg-white">
+                <div class="form-check form-switch ms-1">
+                    @{ var activeId = $"isActiveCheck_{Model.Id}"; }
+                    <input class="form-check-input" type="checkbox" asp-for="IsActive" id="@activeId" style="cursor: pointer;">
+                    <label class="form-check-label fw-bold text-dark ms-2" for="@activeId" style="cursor: pointer;">Approved Access</label>
+                </div>
+                <div class="ps-5 small text-muted">Revoking access prevents all future login sessions.</div>
+            </div>
+        }
+
+        <div class="modal-footer border-top-0 px-0 pb-0 d-flex justify-content-between mt-2">
+            <div>
+                @if (!Model.IsAdminUser)
+                {
+                    <button type="submit" name="command" value="Delete" class="btn btn-outline-danger btn-sm px-3 fw-semibold"
+                            onclick="return confirm('Are you sure you want to permanently delete this user?');">
+                        <i class="bi bi-person-x me-1"></i> Terminate
+                    </button>
+                }
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-light fw-semibold text-secondary px-4" data-bs-dismiss="modal">Close</button>
+                <button type="submit" name="command" value="Save" class="btn btn-amber shadow-sm px-4">Commit Changes</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+    .btn-amber { background-color: #f59e0b; color: white; border: none; font-weight: 600; }
+    .btn-amber:hover { background-color: #d97706; color: white; transform: translateY(-1px); }
+    .form-check-input:checked { background-color: #6366f1; border-color: #6366f1; }
+</style>

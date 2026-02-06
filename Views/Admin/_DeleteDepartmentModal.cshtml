@@ -1,0 +1,73 @@
+﻿@*
+@model ScheduleCentral.Models.Department
+
+<div class="modal-header">
+    <h5 class="modal-title text-danger">Delete Department?</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<div class="modal-body">
+    <p>Are you sure you want to delete the department <strong>@Model.Name</strong>?</p>
+
+    @if (Model.Courses.Any() || Model.Batches.Any())
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Warning:</strong> This department has
+            @Model.Courses.Count courses and @Model.Batches.Count batches linked to it.
+            Deleting it might cause data loss or errors.
+        </div>
+    }
+</div>
+
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <form asp-action="DeleteDepartment" method="post">
+        <input type="hidden" name="id" value="@Model.Id" />
+        <button type="submit" class="btn btn-danger">Delete Permanently</button>
+    </form>
+</div> *@
+@model ScheduleCentral.Models.Department
+
+<div class="modal-header border-bottom-0 pb-0">
+    <div class="d-flex align-items-center">
+        <div class="p-2 rounded-3 bg-danger-subtle me-3">
+            <i class="bi bi-exclamation-octagon text-danger fs-4"></i>
+        </div>
+        <div>
+            <h5 class="modal-title fw-bold text-dark">Confirm Deletion</h5>
+            <p class="text-muted small mb-0">You are about to remove a system department.</p>
+        </div>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<div class="modal-body p-4">
+    <p class="text-dark">Are you sure you want to delete the department <span class="fw-bold text-danger">@Model.Name</span>?</p>
+
+    @if (Model.Courses.Any() || Model.Batches.Any())
+    {
+        <div class="alert border-0 shadow-sm" style="background-color: #fff7ed; border-left: 4px solid #f97316 !important;">
+            <div class="d-flex">
+                <i class="bi bi-exclamation-triangle-fill text-warning fs-5 me-3"></i>
+                <div>
+                    <strong class="text-warning-emphasis d-block mb-1">Impact Warning:</strong>
+                    <span class="small text-muted">
+                        This department is linked to <strong>@Model.Courses.Count courses</strong> and <strong>@Model.Batches.Count batches</strong>. 
+                        Deleting it may cause orphaned records or system errors.
+                    </span>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="modal-footer border-top-0 pt-0">
+    <button type="button" class="btn btn-light fw-semibold text-secondary px-4" data-bs-dismiss="modal">Cancel</button>
+    <form asp-action="DeleteDepartment" method="post">
+        <input type="hidden" name="id" value="@Model.Id" />
+        <button type="submit" class="btn btn-danger shadow-sm px-4">
+            <i class="bi bi-trash3 me-1"></i> Delete Permanently
+        </button>
+    </form>
+</div>

@@ -1,0 +1,451 @@
+﻿@model ScheduleCentral.Models.ViewModels.ResourceManagementViewModel
+@{
+    ViewData["Title"] = "Campus Resources";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    // Palette Colors consistent with the Public Schedule Viewer
+    var clrIndigo = "#4f46e5";
+    var clrEmerald = "#10b981";
+    var clrCyan = "#06b6d4";
+    var lightBg = "#f8fafc";
+}
+<style>
+    /* Custom Tabs Styling */
+    .resource-tabs .nav-link {
+        border: none;
+        color: #64748b;
+        font-weight: 600;
+        padding: 1rem 1.5rem;
+        transition: all 0.2s;
+        border-bottom: 3px solid transparent;
+    }
+    .resource-tabs .nav-link.active {
+        color: @clrIndigo !important;
+        background: transparent !important;
+        border-bottom: 3px solid @clrIndigo;
+    }
+    
+    /* Modern Card Styles */
+    .resource-card {
+        border-radius: 1rem;
+        border: 1px solid #f1f5f9;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    
+    .course-code-badge {
+        background-color: #eef2ff;
+        color: @clrIndigo;
+        font-family: 'Monaco', 'Consolas', monospace;
+        padding: 0.4rem 0.6rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+    }
+
+    .modal-content {
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    .modal-header {
+        border-bottom: 1px solid #f1f5f9;
+        padding: 1.5rem;
+    }
+    .modal-footer {
+        border-top: 1px solid #f1f5f9;
+        padding: 1.25rem;
+    }
+    .form-label {
+        font-weight: 600;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #64748b;
+    }
+    .form-control, .form-select {
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        padding: 0.6rem 1rem;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: @clrIndigo;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+</style>
+
+<div class="container-fluid px-4 py-4">
+    <div class="mb-4">
+        <h1 class="h4 mb-1 fw-bold" style="color: @clrIndigo;">Resource Management</h1>
+        <p class="text-muted small">Configure the global catalog of academic courses, physical spaces, and facility types.</p>
+    </div>
+
+    <ul class="nav nav-tabs resource-tabs mb-4 border-bottom" id="resourceTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" id="courses-tab" data-bs-toggle="tab" data-bs-target="#courses" type="button">
+                <i class="bi bi-journal-bookmark me-2"></i>Course Catalog
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="rooms-tab" data-bs-toggle="tab" data-bs-target="#rooms" type="button">
+                <i class="bi bi-door-open me-2"></i>Classrooms
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="types-tab" data-bs-toggle="tab" data-bs-target="#types" type="button">
+                <i class="bi bi-tags me-2"></i>Room Types
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="resourceTabsContent">
+        <div class="tab-pane fade show active" id="courses">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-muted mb-0">Registered Courses</h6>
+                <button class="btn text-white fw-bold px-3 shadow-sm" style="background-color: @clrIndigo; border-radius: 8px;" data-bs-toggle="modal" data-bs-target="#createCourseModal">
+                    <i class="bi bi-plus-lg me-1"></i> Add New Course
+                </button>
+            </div>
+            <div class="card resource-card overflow-hidden">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead style="background-color: @lightBg;">
+                            <tr class="small text-uppercase text-muted fw-bold">
+                                <th class="ps-4 py-3">Code</th>
+                                <th>Course Title</th>
+                                <th>Credits</th>
+                                <th>Lec / Lab</th>
+                                <th>Contact</th>
+                                <th class="text-end pe-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var c in Model.Courses)
+                            {
+                                <tr>
+                                    <td class="ps-4"><span class="course-code-badge fw-bold">@c.Code</span></td>
+                                    <td class="fw-medium text-dark">@c.Name</td>
+                                    <td>@c.CreditHours</td>
+                                    <td class="text-muted">@c.LectureHours / @c.LabHours</td>
+                                    <td><span class="badge rounded-pill bg-light text-dark border fw-bold">@c.ContactHours hrs</span></td>
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-outline-light text-dark border shadow-sm" data-bs-toggle="modal" data-bs-target="#editCourseModal" data-id="@c.Id" data-code="@c.Code" data-name="@c.Name" data-credits="@c.CreditHours" data-lecture="@c.LectureHours" data-lab="@c.LabHours">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="rooms">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-muted mb-0">Campus Classrooms</h6>
+                <button class="btn text-white fw-bold px-3 shadow-sm" style="background-color: @clrCyan; border-radius: 8px;" data-bs-toggle="modal" data-bs-target="#createRoomModal">
+                    <i class="bi bi-plus-lg me-1"></i> Add New Room
+                </button>
+            </div>
+            <div class="card resource-card overflow-hidden">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead style="background-color: @lightBg;">
+                            <tr class="small text-uppercase text-muted fw-bold">
+                                <th class="ps-4 py-3">Room Name</th>
+                                <th>Capacity</th>
+                                <th>Facility Type</th>
+                                <th class="text-end pe-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var r in Model.Rooms)
+                            {
+                                <tr>
+                                    <td class="ps-4 fw-bold" style="color: @clrCyan;">@r.Name</td>
+                                    <td><i class="bi bi-people me-1 text-muted"></i> @r.Capacity Seats</td>
+                                    <td>
+                                        <span class="badge px-3 py-2 rounded-pill fw-medium" style="background-color: #ecfeff; color: @clrCyan; border: 1px solid #cffafe;">
+                                            @r.RoomType?.Name
+                                        </span>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-outline-light text-dark border shadow-sm" data-bs-toggle="modal" data-bs-target="#editRoomModal" data-id="@r.Id" data-name="@r.Name" data-capacity="@r.Capacity" data-type="@r.RoomType?.Id">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="types">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-muted mb-0">Room Classification</h6>
+                <button class="btn text-white fw-bold px-3 shadow-sm" style="background-color: @clrEmerald; border-radius: 8px;" data-bs-toggle="modal" data-bs-target="#createTypeModal">
+                    <i class="bi bi-plus-lg me-1"></i> Add Category
+                </button>
+            </div>
+            <div class="row g-3">
+                @foreach (var t in Model.RoomTypes)
+                {
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card resource-card h-100 border-start border-4" style="border-left-color: @clrEmerald !important;">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="fw-bold mb-0">@t.Name</h6>
+                                    <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="modal" data-bs-target="#editTypeModal" data-id="@t.Id" data-name="@t.Name" data-description="@t.Description">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+                                </div>
+                                <p class="text-muted small mb-0">@(string.IsNullOrEmpty(t.Description) ? "No description provided." : t.Description)</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="createCourseModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="fw-bold mb-0" style="color: @clrIndigo;">Add New Course</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="CreateCourse" method="post">
+                <div class="modal-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-7">
+                            <label class="form-label">Course Code</label>
+                            <input name="Code" class="form-control" placeholder="e.g. CS101" required />
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Credit Hours</label>
+                            <input name="CreditHours" type="number" class="form-control" value="3" required />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Course Title</label>
+                        <input name="Name" class="form-control" placeholder="e.g. Intro to Programming" required />
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label">Contact Hours</label>
+                            <input name="LectureHours" type="number" class="form-control" value="3" />
+                            <input name="LabHours" type="hidden" value="0" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn text-white px-4 fw-bold" style="background-color: @clrIndigo;">Create Course</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editCourseModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="fw-bold mb-0" style="color: @clrIndigo;">Edit Course Details</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="EditCourse" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="editCourseId" />
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-7">
+                            <label class="form-label">Course Code</label>
+                            <input name="code" id="editCourseCode" class="form-control" required />
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Credit Hours</label>
+                            <input name="creditHours" id="editCourseCredits" type="number" class="form-control" required />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Course Title</label>
+                        <input name="name" id="editCourseName" class="form-control" required />
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label">Contact Hours</label>
+                            <input name="lectureHours" id="editCourseLecture" type="number" class="form-control" />
+                            <input name="labHours" id="editCourseLab" type="hidden" value="0" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn text-white px-4 fw-bold" style="background-color: @clrIndigo;">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="createRoomModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="fw-bold mb-0" style="color: @clrCyan;">Add New Classroom</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="CreateRoom" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Room Designation</label>
+                        <input name="Name" class="form-control" placeholder="e.g. Room 402" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Seating Capacity</label>
+                        <input name="Capacity" type="number" class="form-control" required />
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">Room Type</label>
+                        <select name="RoomTypeId" class="form-select" asp-items="ViewBag.RoomTypes"></select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn text-white px-4 fw-bold" style="background-color: @clrCyan;">Create Room</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editRoomModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="fw-bold mb-0" style="color: @clrCyan;">Edit Room Details</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="EditRoom" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="Id" id="editRoomId" />
+                    <div class="mb-3">
+                        <label class="form-label">Room Designation</label>
+                        <input name="Name" id="editRoomName" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Seating Capacity</label>
+                        <input name="Capacity" id="editRoomCapacity" type="number" class="form-control" required />
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">Room Type</label>
+                        <select name="RoomTypeId" id="editRoomType" class="form-select" asp-items="ViewBag.RoomTypes"></select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn text-white px-4 fw-bold" style="background-color: @clrCyan;">Update Room</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="createTypeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="fw-bold mb-0" style="color: @clrEmerald;">New Room Category</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="CreateRoomType" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Category Name</label>
+                        <input name="Name" class="form-control" placeholder="e.g. Computer Laboratory" required />
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">Description</label>
+                        <textarea name="Description" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn text-white px-4 fw-bold" style="background-color: @clrEmerald;">Add Type</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editTypeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="fw-bold mb-0" style="color: @clrEmerald;">Edit Category</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="EditRoomType" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="Id" id="editTypeId" />
+                    <div class="mb-3">
+                        <label class="form-label">Category Name</label>
+                        <input name="Name" id="editTypeName" class="form-control" required />
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">Description</label>
+                        <textarea name="Description" id="editTypeDesc" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn text-white px-4 fw-bold" style="background-color: @clrEmerald;">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Logic for Course Modal
+        const editCourseModal = document.getElementById('editCourseModal');
+        if (editCourseModal) {
+            editCourseModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                document.getElementById('editCourseId').value = button.getAttribute('data-id');
+                document.getElementById('editCourseCode').value = button.getAttribute('data-code');
+                document.getElementById('editCourseName').value = button.getAttribute('data-name');
+                document.getElementById('editCourseCredits').value = button.getAttribute('data-credits');
+                document.getElementById('editCourseLecture').value = button.getAttribute('data-lecture');
+                document.getElementById('editCourseLab').value = 0;
+            });
+        }
+        
+        // Logic for Room Modal
+        const editRoomModal = document.getElementById('editRoomModal');
+        if (editRoomModal) {
+            editRoomModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                document.getElementById('editRoomId').value = button.getAttribute('data-id');
+                document.getElementById('editRoomName').value = button.getAttribute('data-name');
+                document.getElementById('editRoomCapacity').value = button.getAttribute('data-capacity');
+                document.getElementById('editRoomType').value = button.getAttribute('data-type');
+            });
+        }
+        
+        // Logic for Type Modal
+        const editTypeModal = document.getElementById('editTypeModal');
+        if (editTypeModal) {
+            editTypeModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                document.getElementById('editTypeId').value = button.getAttribute('data-id');
+                document.getElementById('editTypeName').value = button.getAttribute('data-name');
+                document.getElementById('editTypeDesc').value = button.getAttribute('data-description');
+            });
+        }
+    </script>
+}

@@ -1,0 +1,484 @@
+﻿@model IEnumerable<ScheduleCentral.Models.ApplicationUser>
+@{
+    ViewData["Title"] = "Faculty Pool";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    :root {
+        --glass-bg: rgba(255, 255, 255, 0.95);
+        --accent-indigo: #4f46e5;
+        --soft-slate: #64748b;
+        --border-color: #f1f5f9;
+    }
+
+    .page-header {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 2rem;
+    }
+
+    .faculty-card {
+        border-radius: 16px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid var(--border-color);
+        background: white;
+        overflow: hidden;
+        /* Adding the vertical accent line like the schedule viewer */
+        border-left: 4px solid var(--accent-indigo);
+    }
+
+    .faculty-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+    }
+
+    .avatar-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: #eef2ff;
+        color: var(--accent-indigo);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .search-wrapper {
+        position: relative;
+    }
+
+    .search-wrapper i {
+        position: absolute;
+        left: 1.25rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--soft-slate);
+    }
+
+    .search-input {
+        height: 48px;
+        padding-left: 3rem;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: #f8fafc;
+        transition: all 0.2s;
+    }
+
+    .search-input:focus {
+        background: white;
+        border-color: var(--accent-indigo);
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    }
+
+    .stat-pill {
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 0.5rem 0.75rem;
+    }
+
+    /* Refined Badges */
+    .badge-soft-indigo { background: #eef2ff; color: #4338ca; border: 1px solid #e0e7ff; }
+    .badge-soft-emerald { background: #ecfdf5; color: #065f46; border: 1px solid #d1fae5; }
+    .badge-soft-slate { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+
+    .dropdown-menu {
+        border: 1px solid var(--border-color);
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        border-radius: 12px;
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="page-header shadow-sm d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+        <div>
+            <h1 class="h4 mb-1 fw-bold text-dark">Faculty Pool</h1>
+            <p class="text-muted small mb-0">Monitor instructor load and scheduling availability.</p>
+        </div>
+        
+        <div class="search-wrapper flex-grow-1 mx-md-4 w-100" style="max-width: 500px;">
+            <i class="bi bi-search"></i>
+            <input type="text" id="facultySearch" class="form-control search-input" placeholder="Search by name, department, or course...">
+        </div>
+
+        <button class="btn btn-primary px-4 py-2 fw-semibold shadow-sm" style="border-radius: 10px;" data-bs-toggle="modal" data-bs-target="#createInstructorModal">
+            <i class="bi bi-person-plus me-2"></i>Add Instructor
+        </button>
+    </div>
+
+    <div class="row g-4" id="facultyGrid">
+        @foreach (var instr in Model)
+        {
+            // Build search metadata
+            var courseCodes = instr.QualifiedCourses != null 
+                ? string.Join(" ", instr.QualifiedCourses.Where(q => q.Course != null).Select(q => q.Course.Code)) 
+                : "";
+            var searchData = $"{instr.FullName} {instr.Department} {courseCodes}".ToLower();
+
+            <div class="col-md-6 col-xl-4 faculty-item" data-searchable="@searchData">
+                <div class="card h-100 faculty-card shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-start mb-4">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-box me-3">
+                                    <i class="bi bi-shield-check"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-0 fw-bold text-dark">@instr.FullName</h5>
+                                    <span class="text-muted small">@instr.Department</span>
+                                </div>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-link text-muted p-0" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots fs-5"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end p-2">
+                                    <li><a class="dropdown-item rounded-2" href="#" data-bs-toggle="modal" data-bs-target="#editInstructorModal" data-id="@instr.Id" data-email="@instr.Email" data-first="@instr.FirstName" data-last="@instr.LastName" data-department="@instr.Department" data-hours="@instr.AvailableHours"><i class="bi bi-pencil me-2"></i>Edit Profile</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item rounded-2 text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteInstructorModal" data-id="@instr.Id" data-name="@instr.FullName"><i class="bi bi-trash me-2"></i>Delete Instructor</a></li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="stat-pill d-flex justify-content-between align-items-center mb-4">
+                            <span class="small fw-semibold text-secondary text-uppercase" style="letter-spacing: 0.5px;">Max Load</span>
+                            <span class="fw-bold text-primary">@instr.AvailableHours Hours</span>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="small fw-bold text-uppercase text-muted" style="font-size: 0.65rem;">Schedule Availability</label>
+                                <button class="btn btn-sm text-primary p-0 fw-bold" style="font-size: 0.75rem;" 
+                                        data-bs-toggle="modal" data-bs-target="#availabilityModal" data-id="@instr.Id" data-name="@instr.FullName" data-slots="@instr.AvailabilitySlots"
+                                        @(ViewBag.IsAvailabilityLocked == true ? "disabled" : "")>
+                                    Update
+                                </button>
+                            </div>
+                            <div class="d-flex flex-wrap gap-1">
+                                @{ var slots = ParseSlots(instr.AvailabilitySlots).ToList(); }
+                                @if (slots.Any()) {
+                                    foreach (var slot in slots) {
+                                        <span class="badge badge-soft-emerald">@DisplaySlot(slot)</span>
+                                    }
+                                } else {
+                                    <span class="text-muted small fst-italic">No slots selected.</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="small fw-bold text-uppercase text-muted" style="font-size: 0.65rem;">Qualified Courses</label>
+                                <button class="btn btn-sm btn-outline-indigo py-0 px-2" style="font-size: 0.7rem; border-radius: 6px;" onclick="openQualifyModal('@instr.Id', '@instr.FullName')">
+                                    <i class="bi bi-plus"></i> Add
+                                </button>
+                            </div>
+                            <div class="d-flex flex-wrap gap-1">
+                                @if (instr.QualifiedCourses != null && instr.QualifiedCourses.Any()) {
+                                    foreach (var q in instr.QualifiedCourses) {
+                                        if (q.Course != null) {
+                                            <span class="badge badge-soft-indigo d-inline-flex align-items-center">
+                                                @q.Course.Code
+                                                <form asp-action="RemoveQualification" method="post" class="ms-1">
+                                                    <input type="hidden" name="instructorId" value="@instr.Id" />
+                                                    <input type="hidden" name="courseId" value="@q.CourseId" />
+                                                    <button type="submit" class="btn-close" style="font-size: 0.5rem;" title="Remove"></button>
+                                                </form>
+                                            </span>
+                                        }
+                                    }
+                                } else {
+                                    <span class="text-muted small fst-italic">No qualifications listed.</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="modal fade" id="createInstructorModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5>New Instructor</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <form asp-action="CreateInstructor" method="post">
+                <div class="modal-body">
+                    <div class="row g-2 mb-2">
+                        <div class="col"><label>First Name</label><input name="firstName" class="form-control" required /></div>
+                        <div class="col"><label>Last Name</label><input name="lastName" class="form-control" required /></div>
+                    </div>
+                    <div class="mb-2"><label>Email</label><input name="email" type="email" class="form-control" required /></div>
+                    <div class="row g-2 mb-2">
+                        <div class="col">
+                            <label>Department</label>
+                            <select name="department" class="form-select" asp-items="ViewBag.Departments"></select>
+                        </div>
+                        <div class="col"><label>Load Limit (Hrs)</label><input name="availableHours" type="number" class="form-control" value="12" /></div>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-primary">Create</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="qualifyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Qualification</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="AssignQualification" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="instructorId" id="targetInstructorId" />
+                    <p class="text-muted">Assign a course that <strong id="targetInstructorName"></strong> is qualified to teach.</p>
+                    <div class="mb-3">
+                        <label class="form-label">Course</label>
+                        <select name="courseId" class="form-select" asp-items="ViewBag.Courses"></select>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-success">Assign</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editInstructorModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5>Edit Instructor</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <form asp-action="EditInstructor" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="instructorId" id="editInstructorId" />
+                    <div class="mb-2"><label>Email</label><input name="email" id="editInstructorEmail" type="email" class="form-control" required /></div>
+                    <div class="row g-2 mb-2">
+                        <div class="col"><label>First Name</label><input name="firstName" id="editInstructorFirst" class="form-control" required /></div>
+                        <div class="col"><label>Last Name</label><input name="lastName" id="editInstructorLast" class="form-control" required /></div>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col">
+                            <label>Department</label>
+                            <select name="department" id="editInstructorDepartment" class="form-select" asp-items="ViewBag.Departments"></select>
+                        </div>
+                        <div class="col"><label>Load Limit (Hrs)</label><input name="availableHours" id="editInstructorHours" type="number" class="form-control" /></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteInstructorModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5>Delete Instructor</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <form asp-action="DeleteInstructor" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="instructorId" id="deleteInstructorId" />
+                    <p class="mb-0">Are you sure you want to delete <strong id="deleteInstructorName"></strong>?</p>
+                    <div class="text-muted small mt-2">Deletion is blocked if the instructor is referenced by assignments or schedules.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="availabilityModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header"><h5>Edit Availability</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <form asp-action="UpdateInstructorAvailability" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="instructorId" id="availabilityInstructorId" />
+                    <p class="text-muted mb-3">Set availability for <strong id="availabilityInstructorName"></strong>.</p>
+
+                    @if (ViewBag.IsAvailabilityLocked == true)
+                    {
+                        <div class="alert alert-warning mb-3">Availability is locked because a schedule has been generated for the active term.</div>
+                    }
+
+                    <div class="row g-3">
+                        @{
+                            var days = new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+                            var times = new[] { "AM", "PM", "Night" };
+                        }
+                        @foreach (var day in days)
+                        {
+                            <div class="col-12 col-md-6">
+                                <div class="border rounded p-2">
+                                    <div class="fw-bold mb-2">@day</div>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        @foreach (var time in times)
+                                        {
+                                            var slot = $"{day}-{time}";
+                                            var id = $"slot_{day}_{time}";
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="selectedSlots" value="@slot" id="@id" />
+                                                <label class="form-check-label" for="@id">@time</label>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" @(ViewBag.IsAvailabilityLocked == true ? "disabled" : "")>Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // CLIENT-SIDE SEARCH LOGIC
+        // This filters the cards based on the data-searchable attribute created in the Razor loop
+        document.getElementById('facultySearch').addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            document.querySelectorAll('.faculty-item').forEach(item => {
+                const searchData = item.getAttribute('data-searchable') || "";
+                item.style.display = searchData.includes(term) ? 'block' : 'none';
+            });
+        });
+
+        // Modal Logic
+        function openQualifyModal(id, name) {
+            document.getElementById('targetInstructorId').value = id;
+            document.getElementById('targetInstructorName').innerText = name;
+            new bootstrap.Modal(document.getElementById('qualifyModal')).show();
+        }
+
+        const editInstructorModal = document.getElementById('editInstructorModal');
+        if (editInstructorModal) {
+            editInstructorModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                if (!button) return;
+                document.getElementById('editInstructorId').value = button.getAttribute('data-id');
+                document.getElementById('editInstructorEmail').value = button.getAttribute('data-email');
+                document.getElementById('editInstructorFirst').value = button.getAttribute('data-first');
+                document.getElementById('editInstructorLast').value = button.getAttribute('data-last');
+                document.getElementById('editInstructorDepartment').value = button.getAttribute('data-department');
+                document.getElementById('editInstructorHours').value = button.getAttribute('data-hours');
+            });
+        }
+
+        const deleteInstructorModal = document.getElementById('deleteInstructorModal');
+        if (deleteInstructorModal) {
+            deleteInstructorModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                if (!button) return;
+                document.getElementById('deleteInstructorId').value = button.getAttribute('data-id');
+                document.getElementById('deleteInstructorName').innerText = button.getAttribute('data-name');
+            });
+        }
+
+        const availabilityModal = document.getElementById('availabilityModal');
+        if (availabilityModal) {
+            availabilityModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                if (!button) return;
+
+                const id = button.getAttribute('data-id');
+                const name = button.getAttribute('data-name');
+                const slotsCsv = button.getAttribute('data-slots') || '';
+
+                document.getElementById('availabilityInstructorId').value = id;
+                document.getElementById('availabilityInstructorName').innerText = name;
+
+                const selected = new Set(slotsCsv
+                    .split(',')
+                    .map(s => (s || '').trim())
+                    .filter(s => s.length));
+
+                availabilityModal.querySelectorAll('input[type="checkbox"][name="selectedSlots"]').forEach(cb => {
+                    cb.checked = selected.has(cb.value);
+                });
+            });
+        }
+    </script>
+}
+
+@functions {
+    IEnumerable<string> ParseSlots(string? slotsCsv)
+    {
+        if (string.IsNullOrWhiteSpace(slotsCsv))
+            return Enumerable.Empty<string>();
+
+        var raw = slotsCsv
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        int DayOrder(string d) => d switch
+        {
+            "Mon" => 1,
+            "Tue" => 2,
+            "Wed" => 3,
+            "Thu" => 4,
+            "Fri" => 5,
+            "Sat" => 6,
+            "Sun" => 7,
+            _ => 99
+        };
+
+        int TimeOrder(string t) => t switch
+        {
+            "AM" => 1,
+            "PM" => 2,
+            "Night" => 3,
+            _ => 99
+        };
+
+        return raw
+            .Select(s => s.Trim())
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => new { Slot = s, Parts = s.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) })
+            .OrderBy(x => x.Parts.Length > 0 ? DayOrder(x.Parts[0]) : 99)
+            .ThenBy(x => x.Parts.Length > 1 ? TimeOrder(x.Parts[1]) : 99)
+            .Select(x => x.Slot);
+    }
+
+    string DisplaySlot(string slot)
+    {
+        if (string.IsNullOrWhiteSpace(slot)) return "";
+        var parts = slot.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length != 2) return slot;
+
+        var day = parts[0] switch
+        {
+            "Mon" => "Mon",
+            "Tue" => "Tue",
+            "Wed" => "Wed",
+            "Thu" => "Thu",
+            "Fri" => "Fri",
+            "Sat" => "Sat",
+            "Sun" => "Sun",
+            _ => parts[0]
+        };
+
+        var time = parts[1] switch
+        {
+            "AM" => "Before noon",
+            "PM" => "After noon",
+            "Night" => "Night",
+            _ => parts[1]
+        };
+
+        return $"{day} {time}";
+    }
+}

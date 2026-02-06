@@ -1,0 +1,26 @@
+@model ScheduleCentral.Models.ViewModels.OfferingFeedbackViewModel
+@{
+    ViewData["Title"] = "Offering Feedback";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h5>Feedback for @Model.Department — @Model.AcademicYear (Semester @Model.Semester)</h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-danger">
+            <strong>Rejected by Program Officer.</strong>
+            <div class="mt-2">@Model.RejectionReason</div>
+        </div>
+
+        <p class="text-muted">
+            After reviewing the feedback, click the button below to continue editing your course offering.
+        </p>
+
+        <form asp-action="AcknowledgeFeedback" asp-route-offeringId="@Model.OfferingId" method="post">
+            <button type="submit" class="btn btn-primary">
+                Continue Editing Offering
+            </button>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,380 @@
+@* @model ScheduleCentral.Models.ViewModels.BatchOfferingViewModel
+@{
+    ViewData["Title"] = "Manage Offering";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4">Offering: @Model.BatchName</h2>
+        <p class="text-muted">@Model.AcademicYear - Semester @Model.Semester</p>
+    </div>
+</div>
+
+<div class="row">
+    @foreach (var section in Model.Sections)
+    {
+        <div class="col-12 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-primary">@section.SectionName</h5>
+                    <button class="btn btn-sm btn-success" onclick="openAddCourseModal(@section.SectionId)">
+                        <i class="bi bi-plus"></i> Add Course
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th>Course</th>
+                                <th>Hrs</th>
+                                <th>Instructor</th>
+                                <th>Room</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var assign in section.Assignments)
+                            {
+                                <tr>
+                                    <td>@assign.CourseName</td>
+                                    <td>@assign.ContactHours</td>
+                                    <td>
+                                        @if (assign.InstructorName == "Unassigned")
+                                        {
+                                            <button class="btn btn-sm btn-outline-warning" onclick="openAssignInstructorModal(@assign.AssignmentId, '@assign.CourseName', @assign.ContactHours)">
+                                                Assign Instructor
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <div>
+                                                <span class="fw-bold">@assign.InstructorName</span>
+                                                <br/>
+                                                <small class="@(assign.CurrentInstructorLoad > assign.InstructorLimit ? "text-danger" : "text-success")">
+                                                    Load: @assign.CurrentInstructorLoad / @assign.InstructorLimit
+                                                </small>
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>@assign.RoomName</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-link text-danger"><i class="bi bi-trash"></i></button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Modal: Add Course -->
+<div class="modal fade" id="addCourseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Course to Section</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="targetSectionId" />
+                <label class="form-label">Select Course</label>
+                <select id="courseSelect" class="form-select" asp-items="ViewBag.AllCourses"></select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="submitAddCourse()">Add</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Assign Instructor -->
+<div class="modal fade" id="assignInstructorModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Assign Instructor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="targetAssignmentId" />
+                <p id="assignModalTitle" class="fw-bold"></p>
+                
+                <div id="instructorList" class="list-group">
+                    <!-- Instructors loaded via AJAX -->
+                    <div class="text-center p-3">Loading qualified instructors...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const YEAR = "@Model.AcademicYear";
+        const SEMESTER = "@Model.Semester";
+
+        function openAddCourseModal(sectionId) {
+            document.getElementById('targetSectionId').value = sectionId;
+            new bootstrap.Modal(document.getElementById('addCourseModal')).show();
+        }
+
+        function submitAddCourse() {
+            const sectionId = document.getElementById('targetSectionId').value;
+            const courseId = document.getElementById('courseSelect').value;
+
+            $.post('/CourseManager/AddCourseToSection', { sectionId, courseId, year: YEAR, semester: SEMESTER })
+            .done(() => location.reload());
+        }
+
+        function openAssignInstructorModal(assignmentId, courseName, hours) {
+            document.getElementById('targetAssignmentId').value = assignmentId;
+            document.getElementById('assignModalTitle').innerText = `Assigning for: ${courseName} (${hours} hrs)`;
+            
+            const modal = new bootstrap.Modal(document.getElementById('assignInstructorModal'));
+            modal.show();
+
+            // Fetch eligible instructors from the pool
+            // We need the courseId, but for simplicity we fetch by assignment ID logic or pass courseId too
+            // NOTE: In a real app, pass CourseId to this function.
+            // Here assuming we fetch based on the assignment entity logic in controller or similar.
+            // For now, let's assume we pass courseId in html.
+            // Re-fetching list...
+        }
+        
+        // Note: You'll need to pass the CourseID to openAssignInstructorModal to fetch the specific pool.
+    </script>
+} *@
+@model ScheduleCentral.Models.ViewModels.BatchOfferingViewModel
+@{
+    ViewData["Title"] = "Manage Offering";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4">Offering: @Model.BatchName</h2>
+        <p class="text-muted">@Model.AcademicYear - Semester @Model.Semester</p>
+    </div>
+</div>
+
+<div class="row">
+    @foreach (var section in Model.Sections)
+    {
+        <div class="col-12 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-primary">@(section.SectionName)</h5>
+                    <button class="btn btn-sm btn-success" onclick="openAddCourseModal(@(section.SectionId))">
+                        <i class="bi bi-plus"></i> Add Course
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th>Course</th>
+                                <th>Hrs</th>
+                                <th>Instructor</th>
+                                <th>Load Check</th>
+                                <th>Room</th>
+                                <th>Status</th> @* <--- NEW COLUMN FOR STATUS *@
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var assign in section.Assignments)
+                            {
+                                <tr data-assignment-id="@assign.AssignmentId">
+                                    <td>@assign.CourseName</td>
+                                    <td>@assign.ContactHours</td>
+                                    <td>
+                                        @if (assign.InstructorName == "Unassigned")
+                                        {
+                                            <button class="btn btn-sm btn-outline-warning"
+                                                    data-course-id="@assign.CourseId"
+                                                    onclick="openAssignInstructorModal(@assign.AssignmentId, '@assign.CourseName', @assign.ContactHours, @assign.CourseId)">
+                                                Assign Instructor
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="fw-bold">@assign.InstructorName</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (assign.InstructorName != "Unassigned")
+                                        {
+                                            <small class="text-muted">
+                                                Used: <span class="@(assign.CurrentInstructorLoad > assign.InstructorLimit ? "text-danger fw-bold" : "text-success")">@assign.CurrentInstructorLoad</span> / @assign.InstructorLimit
+                                            </small>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-secondary">N/A</span>
+                                        }
+                                    </td>
+                                    <td>@assign.RoomName</td>
+                                    <td>
+                                        @* <--- DISPLAYING STATUS ---> *@
+                                        @{
+                                            string badgeClass = assign.Status switch
+                                            {
+                                                "Assigned" => "bg-info",
+                                                "Draft" => "bg-secondary",
+                                                "Approved" => "bg-success",
+                                                _ => "bg-light text-dark"
+                                            };
+                                        }
+                                        <span class="badge @badgeClass">@assign.Status</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-link text-danger"><i class="bi bi-trash"></i></button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Modal: Add Course -->
+<div class="modal fade" id="addCourseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Course to Section</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="targetSectionId" />
+                <label class="form-label">Select Course</label>
+                <select id="courseSelect" class="form-select" asp-items="ViewBag.AllCourses"></select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="submitAddCourse()">Add</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Assign Instructor -->
+<div class="modal fade" id="assignInstructorModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Assign Instructor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="targetAssignmentId" />
+                <input type="hidden" id="targetCourseId" />
+                <p id="assignModalTitle" class="fw-bold"></p>
+                
+                <h6 class="mt-4 mb-2">Qualified Instructors & Current Load</h6>
+                <div id="instructorList" class="list-group">
+                    <div class="text-center p-3 text-secondary">Loading qualified instructors...</div>
+                </div>
+                <div id="assignErrorMessage" class="text-danger mt-3" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts { @* <--- CORRECT SECTION PLACEMENT --- *@
+    <script>
+        const YEAR = "@Model.AcademicYear";
+        const SEMESTER = "@Model.Semester";
+
+        function openAddCourseModal(sectionId) {
+            document.getElementById('targetSectionId').value = sectionId;
+            new bootstrap.Modal(document.getElementById('addCourseModal')).show();
+        }
+
+        function submitAddCourse() {
+            const sectionId = document.getElementById('targetSectionId').value;
+            const courseId = document.getElementById('courseSelect').value;
+
+            $.post('/CourseManager/AddCourseToSection', { sectionId, courseId, year: YEAR, semester: SEMESTER })
+            .done(() => location.reload())
+            .fail(err => {
+                console.error("Error adding course:", err);
+                alert("Failed to add course. See console for details.");
+            });
+        }
+
+        async function openAssignInstructorModal(assignmentId, courseName, hours, courseId) {
+            document.getElementById('targetAssignmentId').value = assignmentId;
+            document.getElementById('targetCourseId').value = courseId;
+            document.getElementById('assignModalTitle').innerText = `Assigning for: ${courseName} (${hours} Contact Hours)`;
+            document.getElementById('assignErrorMessage').style.display = 'none'; 
+
+            const instructorListDiv = document.getElementById('instructorList');
+            instructorListDiv.innerHTML = '<div class="text-center p-3 text-secondary">Loading qualified instructors...</div>';
+
+            const modal = new bootstrap.Modal(document.getElementById('assignInstructorModal'));
+            modal.show();
+
+            try {
+                const response = await fetch(`/CourseManager/GetInstructorsForCourse?courseId=${courseId}&year=${YEAR}&semester=${SEMESTER}`);
+                const instructors = await response.json();
+
+                if (!instructors || instructors.length === 0) {
+                    instructorListDiv.innerHTML = '<div class="alert alert-info">No qualified instructors found for this course.</div>';
+                    return;
+                }
+
+                let html = '';
+                instructors.forEach(instructor => {
+                    const isOverloaded = instructor.isOverloaded;
+                    const buttonClass = isOverloaded ? 'btn-outline-secondary disabled' : 'btn-primary';
+                    const buttonText = isOverloaded ? 'Overloaded' : 'Assign';
+                    const projectedTextClass = isOverloaded ? 'text-danger fw-bold' : 'text-success';
+
+                    html += `
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">${instructor.name} <span class="badge bg-secondary ms-2">${instructor.dept}</span></h6>
+                                <small class="text-muted">
+                                    Current Load: ${instructor.load} hrs. Projected Load: <span class="${projectedTextClass}">${instructor.projectedLoad}</span> / ${instructor.limit} hrs
+                                </small>
+                            </div>
+                            <button class="btn btn-sm ${buttonClass}"
+                                    ${isOverloaded ? 'disabled' : ''}
+                                    onclick="submitAssignInstructor('${assignmentId}', '${instructor.id}', '${courseName}')">
+                                ${buttonText}
+                            </button>
+                        </div>
+                    `;
+                });
+                instructorListDiv.innerHTML = html;
+
+            } catch (error) {
+                instructorListDiv.innerHTML = '<div class="alert alert-danger">Error fetching instructor data. Check console.</div>';
+                console.error("AJAX Error:", error);
+            }
+        }
+
+        function submitAssignInstructor(assignmentId, instructorId, courseName) {
+            document.getElementById('assignErrorMessage').style.display = 'none';
+
+            $.post('/CourseManager/AssignInstructor', { assignmentId, instructorId })
+            .done(() => {
+                 // Close modal and reload page to see the new assignment
+                new bootstrap.Modal(document.getElementById('assignInstructorModal')).hide();
+                location.reload();
+            })
+            .fail(xhr => {
+                const errorMessageDiv = document.getElementById('assignErrorMessage');
+                errorMessageDiv.innerText = xhr.responseText || `Failed to assign ${courseName}.`;
+                errorMessageDiv.style.display = 'block';
+            });
+        }
+    </script>
+}

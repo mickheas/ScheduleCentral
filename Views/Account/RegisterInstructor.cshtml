@@ -1,0 +1,98 @@
+@* @model ScheduleCentral.Models.ViewModels.InstructorRegisterViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Instructor Signup";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <h4 class="text-center fw-bold mb-4 text-secondary">Instructor Signup</h4>
+
+        <form asp-controller="Account" asp-action="RegisterInstructor" method="post">
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-3" role="alert"></div>
+
+            <div class="form-floating mb-3">
+                <input asp-for="FirstName" class="form-control" placeholder="First Name" />
+                <label asp-for="FirstName" class="form-label">First Name</label>
+                <span asp-validation-for="FirstName" class="text-danger small"></span>
+            </div>
+
+            <div class="form-floating mb-3">
+                <input asp-for="LastName" class="form-control" placeholder="Last Name" />
+                <label asp-for="LastName" class="form-label">Last Name</label>
+                <span asp-validation-for="LastName" class="text-danger small"></span>
+            </div>
+
+            <div class="form-floating mb-3">
+                <input asp-for="Email" class="form-control" autocomplete="email" placeholder="name@example.com" />
+                <label asp-for="Email" class="form-label">Email Address</label>
+                <span asp-validation-for="Email" class="text-danger small"></span>
+            </div>
+
+            <div class="d-grid mb-3">
+                <button type="submit" class="btn btn-gradient-primary btn-lg fw-bold fs-6">Submit</button>
+            </div>
+
+            <div class="text-center mb-2">
+                <a class="small text-decoration-none text-primary fw-bold" href="@Url.Page("/Account/Login", new { area = "Identity" })" rel="external">Back to Login</a>
+            </div>
+
+            <div class="text-center text-muted small">
+                After submission, you will receive an email link to set your password. You will only be able to log in after admin approval.
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+} *@
+@model ScheduleCentral.Models.ViewModels.InstructorRegisterViewModel
+@{
+    // Make sure this points to the new layout file you just created
+    Layout = "~/Areas/Identity/Pages/Account/Manage/_Layout.cshtml"; 
+    ViewData["Title"] = "Instructor Signup";
+}
+
+<h4 class="text-center fw-bold mb-4 text-secondary">Instructor Signup</h4>
+
+<form asp-controller="Account" asp-action="RegisterInstructor" method="post">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3" role="alert"></div>
+
+    <div class="form-floating mb-3">
+        <input asp-for="FirstName" class="form-control" placeholder="First Name" />
+        <label asp-for="FirstName">First Name</label>
+        <span asp-validation-for="FirstName" class="text-danger small"></span>
+    </div>
+
+    <div class="form-floating mb-3">
+        <input asp-for="LastName" class="form-control" placeholder="Last Name" />
+        <label asp-for="LastName">Last Name</label>
+        <span asp-validation-for="LastName" class="text-danger small"></span>
+    </div>
+
+    <div class="form-floating mb-3">
+        <input asp-for="Email" class="form-control" autocomplete="email" placeholder="name@example.com" />
+        <label asp-for="Email">Email Address</label>
+        <span asp-validation-for="Email" class="text-danger small"></span>
+    </div>
+
+    <div class="d-grid mb-3">
+        <button type="submit" class="btn btn-gradient-primary btn-lg fw-bold fs-6">Submit</button>
+    </div>
+
+    <div class="text-center mb-3">
+        <a class="small text-decoration-none fw-bold" href="@Url.Page("/Account/Login", new { area = "Identity" })" style="color: #4e73df;">Back to Login</a>
+    </div>
+
+    <div class="text-center text-secondary small px-1" style="font-size: 0.8rem; line-height: 1.4;">
+        After submission, you will receive an email link to set your password. You will only be able to log in after admin approval.
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

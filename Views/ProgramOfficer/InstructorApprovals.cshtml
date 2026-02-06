@@ -1,0 +1,143 @@
+@model IEnumerable<ScheduleCentral.Models.ApplicationUser>
+@{
+    ViewData["Title"] = "Instructor Approvals";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+        <div>
+            <h1 class="h4 mb-1 fw-bold">Instructor Sign-Up Approvals</h1>
+            <div class="text-muted small">Review self-registered instructors and approve or reject.</div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+            <div class="fw-bold">Pending Requests</div>
+            <span class="badge rounded-pill" style="background-color:#f1f5f9; color:#334155; border:1px solid #e2e8f0;">
+                @(Model?.Count() ?? 0)
+            </span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead style="background-color:#f8fafc;">
+                        <tr>
+                            <th class="ps-4 small text-uppercase text-muted fw-bold">Registered (UTC)</th>
+                            <th class="small text-uppercase text-muted fw-bold">Name</th>
+                            <th class="small text-uppercase text-muted fw-bold">Email</th>
+                            <th class="small text-uppercase text-muted fw-bold">Department</th>
+                            <th class="small text-uppercase text-muted fw-bold text-end pe-4">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model == null || !Model.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-5">No pending instructor registrations.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var u in Model)
+                            {
+                                <tr>
+                                    <td class="ps-4">
+                                        <span class="text-muted small">@(u.RegisteredAtUtc?.ToString("yyyy-MM-dd HH:mm") ?? "-")</span>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold">@u.FullName</div>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted">@u.Email</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted">@(string.IsNullOrWhiteSpace(u.Department) ? "-" : u.Department)</span>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-primary fw-bold"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#approvalModal"
+                                                data-id="@u.Id"
+                                                data-name="@u.FullName"
+                                                data-email="@u.Email"
+                                                data-department="@u.Department"
+                                                data-hours="@u.AvailableHours"
+                                                data-registered="@(u.RegisteredAtUtc?.ToString("yyyy-MM-dd HH:mm") ?? "-")">
+                                            View
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="approvalModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Review Instructor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2"><span class="text-muted small">Name</span><div class="fw-bold" id="apprName"></div></div>
+                <div class="mb-2"><span class="text-muted small">Email</span><div id="apprEmail"></div></div>
+                <div class="mb-2"><span class="text-muted small">Department</span><div id="apprDept"></div></div>
+                <div class="mb-2"><span class="text-muted small">Requested Load</span><div id="apprHours"></div></div>
+                <div class="mb-0"><span class="text-muted small">Registered (UTC)</span><div id="apprRegistered"></div></div>
+
+                <input type="hidden" id="apprInstructorId" value="" />
+            </div>
+            <div class="modal-footer d-flex justify-content-between">
+                <form asp-controller="ProgramOfficer" asp-action="RejectInstructorRegistration" method="post" onsubmit="return confirm('Reject this instructor registration?');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="instructorId" id="rejectInstructorId" value="" />
+                    <button type="submit" class="btn btn-outline-danger fw-bold">Reject</button>
+                </form>
+
+                <form asp-controller="ProgramOfficer" asp-action="ApproveInstructorRegistration" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="instructorId" id="approveInstructorId" value="" />
+                    <button type="submit" class="btn btn-success fw-bold">Approve</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const modal = document.getElementById('approvalModal');
+            if (!modal) return;
+
+            modal.addEventListener('show.bs.modal', function (event) {
+                const btn = event.relatedTarget;
+                if (!btn) return;
+
+                const id = btn.getAttribute('data-id') || '';
+                const name = btn.getAttribute('data-name') || '';
+                const email = btn.getAttribute('data-email') || '';
+                const dept = btn.getAttribute('data-department') || '-';
+                const hours = btn.getAttribute('data-hours') || '';
+                const registered = btn.getAttribute('data-registered') || '-';
+
+                document.getElementById('apprName').innerText = name;
+                document.getElementById('apprEmail').innerText = email;
+                document.getElementById('apprDept').innerText = (dept && dept.trim().length) ? dept : '-';
+                document.getElementById('apprHours').innerText = hours ? `${hours} hours` : '-';
+                document.getElementById('apprRegistered').innerText = registered;
+
+                document.getElementById('approveInstructorId').value = id;
+                document.getElementById('rejectInstructorId').value = id;
+            });
+        })();
+    </script>
+}

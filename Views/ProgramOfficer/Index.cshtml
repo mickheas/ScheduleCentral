@@ -1,0 +1,259 @@
+@* @using ScheduleCentral.Models
+@{
+    ViewData["Title"] = "Program Officer Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<!-- Header -->
+<div class="mb-5">
+    <h1 class="h3 fw-bold text-gray-900 ">Academic Planning</h1>
+    <p class="text-muted ">Manage the university's core academic infrastructure and resources.</p>
+</div>
+
+<div class="row g-4">
+    <!-- 1. Academic Periods Card -->
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100 border-0 shadow-sm hover-shadow transition-all">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center mb-4">
+                    <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary me-3">
+                        <i class="bi bi-calendar-range fs-3"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title fw-bold mb-1 ">Semesters</h5>
+                        <small class="text-muted ">Academic Calendar</small>
+                    </div>
+                </div>
+                <p class="card-text text-muted mb-4 ">
+                    Define academic years and semesters. Open or close registration periods for departments.
+                </p>
+                <a asp-action="Semesters" class="btn btn-outline-primary w-100 stretched-link">
+                    Manage Semesters <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Resources Card -->
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100 border-0 shadow-sm hover-shadow transition-all">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center mb-4">
+                    <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success me-3">
+                        <i class="bi bi-building-gear fs-3"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title fw-bold mb-1 ">Campus Resources</h5>
+                        <small class="text-muted ">Rooms & Courses</small>
+                    </div>
+                </div>
+                <p class="card-text text-muted mb-4 ">
+                    Manage the master catalog of Courses, Room Types (Labs, Studios), and physical Classrooms.
+                </p>
+                <a asp-action="Resources" class="btn btn-outline-success w-100 stretched-link">
+                    Manage Resources <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Faculty Card -->
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100 border-0 shadow-sm hover-shadow transition-all">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center mb-4">
+                    <div class="bg-info bg-opacity-10 p-3 rounded-circle text-info me-3">
+                        <i class="bi bi-person-video3 fs-3"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title fw-bold mb-1 ">Faculty Pool</h5>
+                        <small class="text-muted ">Instructors & Skills</small>
+                    </div>
+                </div>
+                <p class="card-text text-muted mb-4 ">
+                    Maintain the instructor list and define their course qualifications (skills matrix) for scheduling.
+                </p>
+                <a asp-action="Instructors" class="btn btn-outline-info w-100 stretched-link">
+                    Manage Faculty <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions / Recent Activity Placeholder -->
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h6 class="m-0 fw-bold text-dark ">System Status</h6>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-light border-start border-4 border-primary mb-0" role="alert">
+                    <h6 class="alert-heading fw-bold "><i class="bi bi-info-circle-fill text-primary me-2"></i>Setup Required</h6>
+                    <p class="mb-0 ">
+                        Ensure an active <strong>Academic Period</strong> is set before departments begin their course offerings. 
+                        Currently, departments cannot submit schedules without an active semester.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hover-shadow:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+    }
+    .transition-all {
+        transition: all 0.3s ease;
+    }
+    /* Dark mode for the card header background (otherwise it remains bright white) */
+    html.dark .card-header.bg-white {
+        background-color: #2d3748 !important;
+    }
+</style> *@
+@using ScheduleCentral.Models
+@{
+    ViewData["Title"] = "Program Officer Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    // Palette Colors
+    var clrIndigo = "#4f46e5";
+    var clrEmerald = "#10b981";
+    var clrCyan = "#06b6d4";
+    var clrAmber = "#f59e0b";
+    var lightBg = "#f8fafc";
+}
+
+<style>
+    .dashboard-card {
+        border: none;
+        border-radius: 1rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 24px -8px rgba(79, 70, 229, 0.15) !important;
+    }
+
+    .icon-box {
+        width: 56px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-size: 1.5rem;
+    }
+
+    .stretched-link::after {
+        border-radius: 1rem;
+    }
+</style>
+
+<div class="container-fluid px-4 py-4">
+    <div class="mb-5">
+        <h1 class="h3 fw-bold mb-1" style="color: @clrIndigo;">Academic Infrastructure</h1>
+        <p class="text-muted">Orchestrate the university's core academic resources and scheduling calendar.</p>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-6 col-xl-4">
+            <div class="card h-100 dashboard-card shadow-sm border-0">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="icon-box me-3" style="background-color: #eef2ff; color: @clrIndigo;">
+                            <i class="bi bi-calendar-range"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-0" style="color: @clrIndigo;">Semesters</h5>
+                            <small class="text-muted text-uppercase fw-bold ls-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">Timeline Management</small>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-4 flex-grow-1">
+                        Define academic years and semesters. Control departmental submission windows and active scheduling periods.
+                    </p>
+                    <a asp-action="Semesters" class="btn fw-bold w-100 stretched-link mt-auto" style="background-color: #eef2ff; color: @clrIndigo; border-radius: 10px;">
+                        Manage Calendar <i class="bi bi-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4">
+            <div class="card h-100 dashboard-card shadow-sm border-0">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="icon-box me-3" style="background-color: #ecfeff; color: @clrCyan;">
+                            <i class="bi bi-building-gear"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-0" style="color: @clrCyan;">Campus Resources</h5>
+                            <small class="text-muted text-uppercase fw-bold ls-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">Infrastructure</small>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-4 flex-grow-1">
+                        Maintain the master catalog of Courses, Laboratory types, Studio spaces, and physical Lecture Halls.
+                    </p>
+                    <a asp-action="Resources" class="btn fw-bold w-100 stretched-link mt-auto" style="background-color: #ecfeff; color: @clrCyan; border-radius: 10px;">
+                        Manage Inventory <i class="bi bi-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4">
+            <div class="card h-100 dashboard-card shadow-sm border-0">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="icon-box me-3" style="background-color: #f0fdf4; color: @clrEmerald;">
+                            <i class="bi bi-person-video3"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-0" style="color: @clrEmerald;">Faculty Pool</h5>
+                            <small class="text-muted text-uppercase fw-bold ls-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">Instructors</small>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-4 flex-grow-1">
+                        Organize the instructor list and define skill matrices to ensure the right educators are assigned to the right courses.
+                    </p>
+                    <a asp-action="Instructors" class="btn fw-bold w-100 stretched-link mt-auto" style="background-color: #f0fdf4; color: @clrEmerald; border-radius: 10px;">
+                        Manage Faculty <i class="bi bi-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4" style="background-color: @lightBg;">
+                <div class="card-header bg-transparent py-3 border-0">
+                    <h6 class="m-0 fw-bold text-uppercase small" style="color: @clrIndigo; letter-spacing: 1px;">
+                        <i class="bi bi-activity me-2"></i>System Status
+                    </h6>
+                </div>
+                <div class="card-body pt-0">
+                    <div class="bg-white p-4 rounded-4 border-start border-4 shadow-sm" style="border-color: @clrAmber !important;">
+                        <div class="d-flex align-items-start">
+                            <div class="me-3 fs-4" style="color: @clrAmber;">
+                                <i class="bi bi-exclamation-circle-fill"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-1" style="color: #92400e;">Setup Required for Term Submission</h6>
+                                <p class="mb-0 text-muted small">
+                                    Ensure an active <strong>Academic Period</strong> is configured. Currently, departments are 
+                                    waiting for the semester status to be set to "Open" to begin their course offering submissions.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

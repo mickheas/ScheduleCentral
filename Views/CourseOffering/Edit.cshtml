@@ -1,0 +1,333 @@
+@* @model ScheduleCentral.Models.ViewModels.CourseOfferingEditVM
+@{
+    ViewData["Title"] = "Edit Course Offering";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    int totalExpectedLoad = 100; // you can compute more accurately if needed
+    int currentLoad = Model.Sections.Sum(s => s.AssignedContactHours);
+    int progress = (currentLoad * 100) / (totalExpectedLoad > 0 ? totalExpectedLoad : 1);
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h4">Offering: @Model.AcademicYear - @Model.Semester</h2>
+            <span class="badge bg-warning text-dark">@Model.Status</span>
+            <div class="small text-muted">@Model.Department</div>
+
+            @if (!string.IsNullOrEmpty(Model.Id.ToString()))
+            {
+                
+            }
+        </div>
+
+            <div class="w-25">
+                <label class="small text-muted">Completion</label>
+                <div class="progress" style="height: 18px;">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: @progress%;" aria-valuenow="@progress">@progress%</div>
+                </div>
+            </div>
+
+            @if (Model.Status == ScheduleCentral.Models.OfferingStatus.Draft || Model.Status == ScheduleCentral.Models.OfferingStatus.Creation || Model.Status == ScheduleCentral.Models.OfferingStatus.Rejected)
+            {
+                <form asp-action="Submit" method="post" class="d-inline">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button type="submit" class="btn btn-primary" @(progress < 10 ? "disabled" : "")>
+                        <i class="bi bi-send"></i> Submit to PO
+                    </button>
+                </form>
+            }
+    </div>
+
+    <form asp-action="Edit" method="post">
+        <input type="hidden" asp-for="Id" />
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0">Course Allocations</h5>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addSectionModal">
+                        <i class="bi bi-plus-circle"></i> Add Section
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Year/Batch</th>
+                                <th>Year's Batch</th>
+                                <th>Course</th>
+                                <th>Instructor</th>
+                                <th>Contact Hrs</th>
+                                <th>Room Type Requirements</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sectionsTableBody">
+                            @for (int i = 0; i < Model.Sections.Count; i++)
+                            {
+                                var s = Model.Sections[i];
+                                <tr data-index="@i" data-sectionid="@s.Id">
+                                    <td>
+                                        <input asp-for="Sections[@i].YearLevel" class="form-control" />
+                                    </td>
+                                    <td>
+                                        <input asp-for="Sections[@i].SectionName" class="form-control" />
+                                    </td>
+                                    <td>
+                                        @Html.DropDownListFor(m => m.Sections[i].CourseId, Model.CourseSelectList, "-- Select course --", new { @class = "form-select" })
+                                    </td>
+                                    <td>
+                                        @Html.DropDownListFor(m => m.Sections[i].InstructorId, Model.InstructorSelectList, "-- Unassigned --", new { @class = "form-select" })
+                                    </td>
+                                    <td>
+                                        <input asp-for="Sections[@i].AssignedContactHours" class="form-control" type="number" min="0" />
+                                    </td>
+                                    <td>
+                                        <table class="table table-borderless table-sm mb-0">
+                                            <thead>
+                                                <tr><th>Type</th><th>Hrs/week</th><th></th></tr>
+                                            </thead>
+                                            <tbody>
+                                                @for (int j = 0; j < s.RoomRequirements.Count; j++)
+                                                {
+                                                    <tr>
+                                                        <td>
+                                                            @Html.DropDownListFor(m => m.Sections[i].RoomRequirements[j].RoomTypeId, Model.RoomTypeSelectList, "-- Type --", new { @class = "form-select form-select-sm" })
+                                                            @Html.HiddenFor(m => m.Sections[i].RoomRequirements[j].Id)
+                                                        </td>
+                                                        <td>
+                                                            @Html.TextBoxFor(m => m.Sections[i].RoomRequirements[j].HoursPerWeek, new { @class = "form-control form-control-sm", type = "number", min = "1" })
+                                                        </td>
+                                                        <td>
+                                                            <button type="button" class="btn btn-sm btn-danger remove-room-req">Remove</button>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary mt-1 add-room-req" data-index="@i">Add Room Type</button>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-danger remove-section">Remove</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+            <button type="submit" class="btn btn-success">Save Changes</button>
+        </div>
+    </form>
+</div>
+
+<!-- Add Section Modal -->
+<div class="modal fade" id="addSectionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Section</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addSectionForm">
+                    <input type="hidden" name="CourseOfferingId" value="@Model.Id" />
+                    <div class="mb-2">
+                        <label class="form-label">Year Level</label>
+                        <input name="YearLevel" class="form-control" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Year's Batch</label>
+                        <input name="SectionName" class="form-control" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Program Type</label>
+                        <select name="ProgramType" class="form-select">
+                            <option>Regular</option>
+                            <option>Extension</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Course</label>
+                        <select name="CourseId" class="form-select">
+                            <option value="">-- Select course --</option>
+                            @foreach (var c in Model.CourseSelectList) {
+                                <option value="@c.Value">@c.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Instructor (optional)</label>
+                        <select name="InstructorId" class="form-select">
+                            <option value="">-- Unassigned --</option>
+                            @foreach (var it in Model.InstructorSelectList) {
+                                if (it.Disabled)
+                                {
+                                    <option value="@it.Value" disabled>@it.Text</option>
+                                }
+                                else
+                                {
+                                    <option value="@it.Value">@it.Text</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-primary" onclick="submitAddSection()">Add</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Add Section AJAX
+        function submitAddSection() {
+            const form = document.getElementById('addSectionForm');
+            const fd = new FormData(form);
+            const obj = {};
+            fd.forEach((v,k) => obj[k] = v);
+            fetch('@Url.Action("AddSection","CourseOffering")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' },
+                body: JSON.stringify(obj)
+            }).then(r => r.json()).then(data => {
+                if (data.success) location.reload();
+                else alert('Failed: ' + (data?.error || 'unknown'));
+            }).catch(e => alert('Error: ' + e));
+        }
+
+        // Remove section (client only) - mark for removal by deleting the row
+        document.addEventListener('click', function(e){
+            if(e.target && e.target.matches('.remove-section')) {
+                const row = e.target.closest('tr');
+                if(confirm('Remove this section?')) row.remove();
+            }
+
+            if(e.target && e.target.matches('.add-room-req')) {
+                const idx = e.target.getAttribute('data-index');
+                addRoomReqRow(idx);
+            }
+
+            if(e.target && e.target.matches('.remove-room-req')) {
+                const row = e.target.closest('tr');
+                row.remove();
+            }
+        });
+
+        function addRoomReqRow(sectionIndex) {
+            // build small HTML and append to that section's requirement table
+            const tbody = document.querySelector(`#sectionsTableBody tr[data-index="${sectionIndex}"] tbody`);
+            if(!tbody) return;
+            const selectHtml = `@Html.Raw(Json.Serialize(Model.RoomTypeSelectList))`; // fallback; not used directly
+            // Simpler: reload page to add, or implement a JS template.
+            alert('Click Save and re-open the section to add room-types from the server-managed fields. (You can customize JS to append fields.)');
+        }
+    </script>
+} *@
+@model ScheduleCentral.Models.ViewModels.CourseOfferingEditViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Edit Course Offering";
+}
+
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">Edit Course Offering — @Model.AcademicYear (@Model.Semester)</h5>
+        </div>
+
+        <div class="card-body">
+            <form asp-action="Edit" method="post">
+                <input type="hidden" asp-for="Id" />
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Academic Year</label>
+                        <input asp-for="AcademicYear" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Semester</label>
+                        <input asp-for="Semester" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Status</label>
+                        <select asp-for="Status" class="form-select">
+                            <option value="Creation">Creation</option>
+                            <option value="Draft">Draft</option>
+                            <option value="Submitted">Submitted</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                    </div>
+                </div>
+
+                <hr />
+
+                <h6>Sections</h6>
+                @foreach (var s in Model.Sections)
+                {
+                    <div class="border rounded p-3 mb-3">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-md-4">
+                                <label class="form-label">Course</label>
+                                <select name="Sections[@Model.Sections.IndexOf(s)].CourseId" class="form-select">
+                                    @foreach (var c in Model.Courses)
+                                    {
+                                        <option value="@c.Value" selected="@(c.Value == s.CourseId.ToString())">@c.Text</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label">Instructor</label>
+                                <select name="Sections[@Model.Sections.IndexOf(s)].InstructorId" class="form-select">
+                                    <option value="">-- Unassigned --</option>
+                                    @foreach (var it in Model.Instructors)
+                                    {
+                                        <option value="@it.Value" selected="@(it.Value == s.InstructorId)">@it.Text</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="col-md-2">
+                                <label class="form-label">Contact Hrs</label>
+                                <input name="Sections[@Model.Sections.IndexOf(s)].AssignedContactHours" value="@s.AssignedContactHours" class="form-control" />
+                            </div>
+
+                            <div class="col-md-3 text-end">
+                                <label class="form-label">&nbsp;</label><br />
+                                <a class="btn btn-sm btn-outline-danger">Remove</a>
+                            </div>
+                        </div>
+
+                        <div class="mt-2">
+                            <label class="form-label small">Room Requirements</label>
+                            <div class="d-flex gap-2 flex-wrap">
+                                @foreach (var rr in s.RoomRequirements)
+                                {
+                                    var rt = Model.RoomTypes.FirstOrDefault(r => r.Value == rr.RoomTypeId.ToString())?.Text ?? "Type";
+                                    <span class="badge bg-secondary">@rt (@rr.HoursPerWeek)h</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <div class="text-end">
+                    <button class="btn btn-primary">Save</button>
+                    <a href="@Url.Action("Index")" class="btn btn-secondary ms-2">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+

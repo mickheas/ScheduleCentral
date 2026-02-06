@@ -1,0 +1,740 @@
+@* @model ScheduleCentral.Controllers.ManageOfferingViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Manage Offering";
+    var coursesSelect = ViewBag.Courses as SelectList;
+    var instructorsSelect = ViewBag.Instructors as IEnumerable<SelectListItem>;
+    var roomTypes = ViewBag.RoomTypes as List<ScheduleCentral.Models.RoomType>;
+    var canSubmit = Model.Batches.Any() && Model.Batches.Any(b => b.Courses.Any());
+    var isLocked = Model.IsLocked;
+    string ToOrdinal(string nStr)
+    {
+        if (!int.TryParse(nStr, out var n)) return nStr;
+        if (n % 100 / 10 == 1) return n + "th";
+        return n % 10 == 1 ? n + "st" : n % 10 == 2 ? n + "nd" : n % 10 == 3 ? n + "rd" : n + "th";
+    }
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="mb-0">Manage Offering — @Model.AcademicYear (Semester @Model.Semester)</h4>
+            <small class="text-muted">@Model.Department</small>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary"
+                    onclick="location.href='@Url.Action("Index")'">Back
+            </button>
+
+            @if (Model.Status == ScheduleCentral.Models.OfferingStatus.Draft ||
+                 Model.Status == ScheduleCentral.Models.OfferingStatus.Creation ||
+                 Model.Status == ScheduleCentral.Models.OfferingStatus.Rejected)
+            {
+                <form asp-action="Submit" asp-controller="CourseOffering" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="offeringId" value="@Model.OfferingId" />
+                    <button type="submit" class="btn btn-success" @(!canSubmit ? "disabled" : "")>
+                        <i class="bi bi-send me-1"></i> Submit to PO
+                    </button>
+                </form>
+            }
+
+            <button class="btn btn-primary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#addBatchModal">
+                <i class="bi bi-plus-lg me-1"></i> Add Batch
+            </button>
+        </div>
+</div>
+
+<form id="__antiForgery" class="d-none">@Html.AntiForgeryToken()</form>
+
+<div class="accordion" id="batchAccordion" data-sc-accordion="true" data-sc-accordion-single="true">
+    @if (!Model.Batches.Any())
+    {
+        <div class="card p-4 text-center">
+            <p class="mb-2 text-muted">No batches created for this offering yet. Click <strong>Add Batch</strong> to begin.</p>
+        </div>
+    }
+
+    @foreach (var batch in Model.Batches)
+    {
+        <div class="accordion-item mb-2 shadow-sm">
+            <h2 class="accordion-header" id="heading-@batch.Id">
+
+
+                <button class="accordion-button collapsed" type="button"
+                        data-sc-accordion-toggle
+                        data-sc-target="#batchcollapse-@batch.Id">
+                    @Html.Raw($"{OrdinalDisplay(batch.YearLevel, batch)}")
+                </button>
+
+            </h2>
+
+
+                <div id="batchcollapse-@batch.Id"
+                     class="accordion-collapse sc-accordion-panel">
+
+                <div class="accordion-body">
+
+                    <div class="d-flex justify-content-between align-items-center mb-2 gap-3 flex-wrap">
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="batchIsExt_@batch.Id" @(batch.IsExtension ? "checked" : null)
+                                       onchange="updateBatchSettings(@batch.Id)">
+                                <label class="form-check-label" for="batchIsExt_@batch.Id">Extension</label>
+                            </div>
+                            <div class="input-group input-group-sm" style="width: 180px;">
+                                <span class="input-group-text"># Sections</span>
+                                <input class="form-control" type="number" min="1" max="20" id="batchSectionCount_@batch.Id" value="@batch.SectionCount"
+                                       onchange="updateBatchSettings(@batch.Id)">
+                            </div>
+                            <div class="small text-muted" id="batchSettingsMsg_@batch.Id"></div>
+                        </div>
+
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle"
+                                    data-bs-toggle="dropdown">
+                                Actions
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#manageCourseModal"
+                                        data-batch-id="@batch.Id">
+                                        Add Course
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item text-danger"
+                                        href="#"
+                                        onclick="deleteBatch(@batch.Id)">
+                                        Delete Batch
+                                    </a>
+
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <table class="table table-bordered table-striped">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Course</th>
+                                <th>Contact Hour</th>
+                                <th>Room Type</th>
+                                <th>Instructor</th>
+                                <th style="width:120px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!batch.Courses.Any())
+                            {
+                                <tr><td colspan="6" class="text-center text-muted">No courses added yet.</td></tr>
+                            }
+                            else
+                            {
+                            var idx = 1;
+                                @foreach (var c in batch.Courses)
+                                {
+                                    <tr>
+                                        <td>@idx</td>
+                                        <td>@c.CourseName</td>
+                                        <td>@c.ContactHours</td>
+                                        <td>@string.Join(", ", c.RoomTypes)</td>
+                                        <td>@c.InstructorName</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#manageCourseModal"
+                                                    data-section-id="@c.Id"
+                                                    data-course-id="@c.CourseId"
+                                                    data-batch-id="@batch.Id">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger"
+                                                    onclick="deleteCourse(@c.Id)"><i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    idx++;
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- ADD BATCH MODAL -->
+@await Html.PartialAsync("_AddBatchModal", Model)
+
+<!-- MANAGE COURSE MODAL (Add / Edit) -->
+@await Html.PartialAsync("_ManageCourseModal", Model)
+
+@functions {
+    string OrdinalDisplay(int yearLevel, ScheduleCentral.Models.ViewModels.BatchViewModel batch)
+    {
+    if (yearLevel <= 0) return $"Year ? — {batch.BatchName}";
+
+    string suffix = yearLevel switch
+    {
+        1 => "1st",
+        2 => "2nd",
+        3 => "3rd",
+        _ => $"{yearLevel}th"
+    };
+
+    return $"Year {suffix} — {batch.BatchName}";
+    }
+    string Romanize(int number)
+    {
+        return number switch
+        {
+            1 => "I",
+            2 => "II",
+            3 => "III",
+            4 => "IV",
+            5 => "V",
+            6 => "VI",
+            7 => "VII",
+            8 => "VIII",
+            9 => "IX",
+            _ => number.ToString()
+        };
+    }
+}
+
+@section Scripts {
+    <script>
+        function getAntiForgeryToken() {
+            return document.querySelector('#__antiForgery input[name="__RequestVerificationToken"]')?.value
+                || document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                || '';
+        }
+
+        async function updateBatchSettings(offeringBatchId) {
+            const isExt = document.getElementById('batchIsExt_' + offeringBatchId)?.checked || false;
+            const sectionCount = parseInt(document.getElementById('batchSectionCount_' + offeringBatchId)?.value || '1');
+            const msgEl = document.getElementById('batchSettingsMsg_' + offeringBatchId);
+            if (msgEl) msgEl.textContent = 'Saving...';
+
+            const resp = await fetch('@Url.Action("UpdateBatchSettings", "CourseOffering")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': getAntiForgeryToken()
+                },
+                body: JSON.stringify({ offeringBatchId, isExtension: isExt, sectionCount })
+            });
+
+            if (resp.ok) {
+                if (msgEl) msgEl.textContent = 'Saved';
+                return;
+            }
+
+            let err = null;
+            try { err = await resp.json(); } catch { }
+
+            const msg = err && err.error
+                ? (err.currentLoad != null && err.limit != null && err.projectedLoad != null
+                    ? `${err.error} (Current: ${err.currentLoad}/${err.limit}, Projected: ${err.projectedLoad})`
+                    : err.error)
+                : 'Failed to save.';
+
+            if (msgEl) msgEl.textContent = msg;
+        }
+
+        // script for adding batch via ajax
+        async function submitAddBatch() {
+            const offeringId = @Model.OfferingId;
+            const yl = parseInt(document.getElementById('batchYearLevel').value);
+            const sem = document.getElementById('batchSemester').value;
+            const name = document.getElementById('batchName').value;
+
+            const body = new URLSearchParams();
+            body.append('offeringId', offeringId);
+            body.append('yearLevel', yl);
+            body.append('semester', sem);
+            body.append('batchName', name);
+
+            const resp = await fetch('@Url.Action("AddBatch")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: body.toString()
+            });
+            const json = await resp.json();
+            if (json.success) location.reload();
+            else alert(json.error || json.message || 'Could not add batch.');
+        }
+
+        // ordinal helper used in razor (but JS fallback could be added if needed)
+
+    // show/hide hours input when room type checked
+    document.querySelectorAll('#addCourseModal-@Model.OfferingId .rt-check').forEach(ch => {
+        ch.addEventListener('change', e => {
+            const rt = e.target.value;
+            const input = document.querySelector('#addCourseModal-@Model.OfferingId .rt-hours[data-rt="' + rt + '"]');
+            if (input) input.style.display = e.target.checked ? 'block' : 'none';
+        });
+    });
+
+    async function submitAddCourse(batchId) {
+        const form = document.querySelector('#addCourseForm-' + batchId);
+        const fd = new FormData(form);
+        const courseId = parseInt(fd.get('CourseId'));
+        const instructorId = fd.get('InstructorId') || null;
+
+        // collect room type ids and hours
+        const roomTypeIds = [];
+        const hours = {};
+        document.querySelectorAll('#addCourseForm-' + batchId + ' .rt-check:checked').forEach(ch => {
+            const id = parseInt(ch.value);
+            roomTypeIds.push(id);
+            const hrs = document.querySelector('#addCourseForm-' + batchId + ' .rt-hours[data-rt="' + id + '"]').value || 0;
+            hours[id] = parseInt(hrs);
+        });
+
+        const payload = {
+            BatchId: batchId,
+            CourseId: courseId,
+            InstructorId: instructorId,
+            RoomTypeIds: roomTypeIds,
+            HoursPerRoomType: hours
+        };
+
+        const resp = await fetch('@Url.Action("AddCourseToBatch")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const j = await resp.json();
+        if (j.success) location.reload();
+        else alert('Failed: ' + JSON.stringify(j));
+    }
+
+    async function deleteBatch(batchId) {
+        if (!confirm('Delete batch and all its courses?')) return;
+        const r = await fetch('@Url.Action("DeleteBatch")', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'batchId=' + batchId });
+        const j = await r.json();
+        if (j.success) location.reload();
+        else alert('Delete failed');
+    }
+
+    async function deleteCourse(sectionId) {
+        if (!confirm('Delete this course row?')) return;
+        const r = await fetch('@Url.Action("DeleteCourse")', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'sectionId=' + sectionId });
+        const j = await r.json();
+        if (j.success) location.reload();
+        else alert('Delete failed');
+    }
+
+    function openManageCourseModal(sectionId) {
+        alert('Manage course row ' + sectionId + ' — you can implement a modal to edit room requirements & instructor here.');
+    }
+</script>
+} *@
+@model ScheduleCentral.Controllers.ManageOfferingViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Manage Offering";
+    
+    var coursesSelect = ViewBag.Courses as SelectList;
+    var instructorsSelect = ViewBag.Instructors as IEnumerable<SelectListItem>;
+    var roomTypes = ViewBag.RoomTypes as List<ScheduleCentral.Models.RoomType>;
+    var canSubmit = Model.Batches.Any() && Model.Batches.Any(b => b.Courses.Any());
+    var isLocked = Model.IsLocked;
+
+    // Palette Colors (Identical to Review View)
+    var clrIndigo = "#4f46e5";
+    var clrCyan = "#06b6d4";
+}
+
+<style>
+    .manage-header {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        margin-bottom: 2rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    /* --- Accordion Styles from Review View --- */
+    .review-accordion-btn {
+        background-color: white !important;
+        color: @clrIndigo !important;
+        font-weight: 600 !important;
+        border-left: 5px solid @clrIndigo;
+        width: 100%;
+        text-align: left;
+        border: none;
+        display: flex;
+        align-items: center;
+        transition: all 0.2s ease;
+        padding: 1.25rem;
+        border-radius: 0 !important;
+    }
+
+    .review-accordion-btn:not(.collapsed) {
+        border-left: 5px solid @clrCyan;
+        background-color: #f0f9ff !important;
+        color: @clrIndigo;
+    }
+    
+    .review-accordion-btn:focus {
+        box-shadow: none;
+        outline: none;
+    }
+
+    /* Bootstrap arrow rotation fix for custom trigger */
+    .review-accordion-btn::after {
+        flex-shrink: 0;
+        width: 1.25rem;
+        height: 1.25rem;
+        margin-left: auto;
+        content: "";
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%234f46e5'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-size: 1.25rem;
+        transition: transform .2s ease-in-out;
+    }
+    
+    .review-accordion-btn:not(.collapsed)::after {
+        transform: rotate(-180deg);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%2306b6d4'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+    }
+
+    .sc-accordion-panel {
+        background-color: white;
+        display: none; /* Hidden by default */
+        border-top: 1px solid #f1f5f9;
+    }
+    
+    /* Utility for table & settings */
+    .table-container { border-radius: 8px; overflow: hidden; border: 1px solid #f1f5f9; }
+    .settings-bar { background: #f8fafc; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid #e2e8f0; }
+    .btn-indigo { background-color: @clrIndigo; color: white; }
+    .btn-indigo:hover { background-color: #4338ca; color: white; }
+    .text-indigo { color: @clrIndigo !important; }
+    .bg-indigo-subtle { background-color: #e0e7ff !important; }
+</style>
+
+<div class="container-fluid px-4 py-4">
+    
+    <div class="manage-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a asp-action="Index" class="text-decoration-none text-muted small">Offerings</a></li>
+                    <li class="breadcrumb-item active small" aria-current="page">Manage</li>
+                </ol>
+            </nav>
+            <h2 class="h4 fw-bold text-dark mb-0">
+                @Model.Department — <span style="color: @clrIndigo;">@Model.AcademicYear</span>
+            </h2>
+            <div class="mt-1">
+                <span class="badge bg-indigo-subtle rounded-pill px-3" style="color: @clrIndigo;">Semester @Model.Semester</span>
+                <span class="ms-2 text-muted small"><i class="bi bi-clock-history me-1"></i> Status: <strong>@Model.Status</strong></span>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a asp-action="Index" class="btn btn-outline-light text-secondary border px-4 rounded-pill fw-semibold">
+                <i class="bi bi-arrow-left me-2"></i>Back
+            </a>
+            @if (Model.Status == ScheduleCentral.Models.OfferingStatus.Draft ||
+                 Model.Status == ScheduleCentral.Models.OfferingStatus.Creation ||
+                 Model.Status == ScheduleCentral.Models.OfferingStatus.Rejected)
+            {
+                <form asp-action="Submit" asp-controller="CourseOffering" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="offeringId" value="@Model.OfferingId" />
+                    <button type="submit" class="btn btn-success shadow-sm px-4 rounded-pill fw-semibold" @(!canSubmit ? "disabled" : "")>
+                        <i class="bi bi-send-fill me-2"></i>Submit to PO
+                    </button>
+                </form>
+            }
+            <button class="btn btn-indigo shadow-sm px-4 rounded-pill fw-semibold" data-bs-toggle="modal" data-bs-target="#addBatchModal" @(isLocked ? "disabled" : null)>
+                <i class="bi bi-plus-lg me-2"></i>Add Batch
+            </button>
+        </div>
+    </div>
+
+    @if (isLocked)
+    {
+        <div class="alert alert-warning border-0 shadow-sm mb-4">
+            This offering is locked. You cannot add batches/courses or modify settings unless the Program Officer reopens it for re-review.
+        </div>
+    }
+
+    <form id="__antiForgery" class="d-none">@Html.AntiForgeryToken()</form>
+
+    <div class="accordion border-0" id="batchAccordion" data-sc-accordion="true" data-sc-accordion-single="true">
+        @if (!Model.Batches.Any())
+        {
+            <div class="card border-0 shadow-sm p-5 text-center bg-white rounded-4">
+                <div class="mb-3"><i class="bi bi-layers text-muted opacity-25" style="font-size: 4rem;"></i></div>
+                <h5 class="fw-bold text-dark">No Batches Yet</h5>
+                <p class="text-muted mx-auto" style="max-width: 400px;">Every offering needs at least one batch. Click <strong>Add Batch</strong> to start.</p>
+            </div>
+        }
+
+        @foreach (var batch in Model.Batches)
+        {
+            <div class="accordion-item border-0 mb-3 shadow-sm rounded-3 overflow-hidden">
+                <h2 class="accordion-header" id="heading-@batch.Id">
+                    <button class="accordion-button review-accordion-btn collapsed" type="button"
+                            data-sc-accordion-toggle
+                            data-sc-target="#batchcollapse-@batch.Id">
+                        
+                        <div class="d-flex align-items-center w-100 pe-3">
+                            <i class="bi bi-mortarboard me-2" style="color: @clrCyan;"></i>
+                            <span class="fw-bold">@Html.Raw($"{OrdinalDisplay(batch.YearLevel, batch)}")</span>
+                            <div class="ms-auto me-3">
+                                <span class="badge rounded-pill bg-light text-dark border fw-normal">@batch.Courses.Count Courses</span>
+                            </div>
+                        </div>
+                    </button>
+                </h2>
+
+                <div id="batchcollapse-@batch.Id" class="sc-accordion-panel shadow-inner">
+                    <div class="accordion-body p-4">
+                        
+                        <div class="settings-bar d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                            <div class="d-flex align-items-center gap-4 flex-wrap">
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" id="batchIsExt_@batch.Id" @(batch.IsExtension ? "checked" : null) onchange="updateBatchSettings(@batch.Id)" @(isLocked ? "disabled" : null)>
+                                    <label class="form-check-label fw-semibold text-dark small" for="batchIsExt_@batch.Id">Extension Class</label>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <label class="small fw-semibold text-muted text-uppercase me-2" style="font-size: 0.7rem;">Sections</label>
+                                    <input class="form-control form-control-sm text-center fw-bold" type="number" min="1" max="20" id="batchSectionCount_@batch.Id" value="@batch.SectionCount" style="width: 70px;" onchange="updateBatchSettings(@batch.Id)" @(isLocked ? "disabled" : null)>
+                                </div>
+                                <span class="badge bg-white text-success border shadow-sm py-2" id="batchSettingsMsg_@batch.Id" style="min-width: 60px;">Ready</span>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 dropdown-toggle" data-bs-toggle="dropdown">Batch Actions</button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                                    <li>
+                                        @if (!isLocked)
+                                        {
+                                            <a class="dropdown-item py-2" href="#" data-bs-toggle="modal" data-bs-target="#manageCourseModal" data-batch-id="@batch.Id"><i class="bi bi-plus-circle me-2 text-primary"></i>Add Course</a>
+                                        }
+                                        else
+                                        {
+                                            <span class="dropdown-item py-2 text-muted disabled"><i class="bi bi-lock me-2"></i>Add Course</span>
+                                        }
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        @if (!isLocked)
+                                        {
+                                            <a class="dropdown-item py-2 text-danger" href="#" onclick="deleteBatch(@batch.Id)"><i class="bi bi-trash me-2"></i>Delete Entire Batch</a>
+                                        }
+                                        else
+                                        {
+                                            <span class="dropdown-item py-2 text-muted disabled"><i class="bi bi-lock me-2"></i>Delete Entire Batch</span>
+                                        }
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive table-container">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
+                                    <tr class="text-muted small text-uppercase">
+                                        <th class="ps-4 border-0">Course Name</th>
+                                        <th class="border-0">Instructor</th>
+                                        <th class="border-0 text-center">Hours</th>
+                                        <th class="border-0">Room Needs</th>
+                                        <th class="pe-4 border-0 text-end">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (!batch.Courses.Any()) {
+                                        <tr><td colspan="5" class="text-center py-5 text-muted"><i class="bi bi-journal-x d-block fs-2 mb-2"></i>No courses added.</td></tr>
+                                    } else {
+                                        @foreach (var c in batch.Courses) {
+                                            <tr>
+                                                <td class="ps-4">
+                                                    <div class="fw-bold text-dark">@c.CourseName</div>
+                                                    <div class="text-muted" style="font-size: 0.75rem;">ID: @c.CourseId</div>
+                                                </td>
+                                                <td><span class="text-dark">@(string.IsNullOrEmpty(c.InstructorName) ? "Unassigned" : c.InstructorName)</span></td>
+                                                <td class="text-center fw-bold" style="color: @clrIndigo;">@c.ContactHours</td>
+                                                <td>
+                                                    @if (c.RoomTypes != null) { foreach(var rt in c.RoomTypes) { <span class="badge bg-light text-secondary border fw-normal me-1">@rt</span> } }
+                                                </td>
+                                                <td class="pe-4 text-end">
+                                                    <div class="btn-group shadow-sm rounded-3 overflow-hidden">
+                                                        <button class="btn btn-white btn-sm border-end" data-bs-toggle="modal" data-bs-target="#manageCourseModal" data-section-id="@c.Id" data-course-id="@c.CourseId" data-batch-id="@batch.Id" @(isLocked ? "disabled" : null)><i class="bi bi-pencil-square text-primary"></i></button>
+                                                        <button class="btn btn-white btn-sm" onclick="deleteCourse(@c.Id)" @(isLocked ? "disabled" : null)><i class="bi bi-x-circle text-danger"></i></button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@await Html.PartialAsync("_AddBatchModal", Model)
+@await Html.PartialAsync("_ManageCourseModal", Model)
+
+@functions {
+    string OrdinalDisplay(int yearLevel, ScheduleCentral.Models.ViewModels.BatchViewModel batch)
+    {
+        if (yearLevel <= 0) return $"Year ? — {batch.BatchName}";
+        string suffix = yearLevel switch { 1 => "1st", 2 => "2nd", 3 => "3rd", _ => $"{yearLevel}th" };
+        return $"Year {suffix} — {batch.BatchName}";
+    }
+}
+
+@section Scripts {
+    <script>
+        // --- 1. Custom Accordion Handler (Replaces Bootstrap Logic) ---
+        document.addEventListener('DOMContentLoaded', function() {
+            const accordion = document.querySelector('[data-sc-accordion="true"]');
+            if(!accordion) return;
+
+            const isSingle = accordion.getAttribute('data-sc-accordion-single') === 'true';
+
+            accordion.addEventListener('click', function(e) {
+                // Find the closest toggle button
+                const btn = e.target.closest('[data-sc-accordion-toggle]');
+                if (!btn) return;
+
+                e.preventDefault();
+                const targetSelector = btn.getAttribute('data-sc-target');
+                const targetPanel = document.querySelector(targetSelector);
+                if (!targetPanel) return;
+
+                const isExpanded = !btn.classList.contains('collapsed');
+
+                // If single mode, close all others first
+                if (isSingle && !isExpanded) {
+                    const allBtns = accordion.querySelectorAll('[data-sc-accordion-toggle]');
+                    const allPanels = accordion.querySelectorAll('.sc-accordion-panel');
+                    
+                    allBtns.forEach(b => b.classList.add('collapsed'));
+                    allPanels.forEach(p => $(p).slideUp(200)); // Using jQuery slideUp for smooth anim like Bootstrap
+                }
+
+                // Toggle Current
+                if (isExpanded) {
+                    btn.classList.add('collapsed');
+                    $(targetPanel).slideUp(200);
+                } else {
+                    btn.classList.remove('collapsed');
+                    $(targetPanel).slideDown(200);
+                }
+            });
+        });
+
+        // --- 2. Existing Data Logic (Keep Strict) ---
+        function getAntiForgeryToken() {
+            return document.querySelector('#__antiForgery input[name="__RequestVerificationToken"]')?.value
+                || document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+        }
+
+        async function updateBatchSettings(offeringBatchId) {
+            const isExt = document.getElementById('batchIsExt_' + offeringBatchId)?.checked || false;
+            const sectionCount = parseInt(document.getElementById('batchSectionCount_' + offeringBatchId)?.value || '1');
+            const msgEl = document.getElementById('batchSettingsMsg_' + offeringBatchId);
+            
+            if (msgEl) { msgEl.textContent = 'Saving...'; msgEl.className = 'badge bg-light text-primary border shadow-sm py-2'; }
+
+            try {
+                const resp = await fetch('@Url.Action("UpdateBatchSettings", "CourseOffering")', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': getAntiForgeryToken() },
+                    body: JSON.stringify({ offeringBatchId, isExtension: isExt, sectionCount })
+                });
+
+                if (resp.ok) {
+                    if (msgEl) {
+                        msgEl.textContent = 'Saved';
+                        msgEl.className = 'badge bg-success-subtle text-success border border-success-subtle py-2';
+                        setTimeout(() => { msgEl.textContent = 'Ready'; msgEl.className = 'badge bg-white text-success border shadow-sm py-2'; }, 2000);
+                    }
+                    return;
+                }
+                const msg = (await resp.json())?.error || 'Failed';
+                if (msgEl) { msgEl.textContent = msg; msgEl.className = 'badge bg-danger-subtle text-danger border border-danger-subtle py-2'; }
+            } catch (e) { if (msgEl) msgEl.textContent = 'Network Error'; }
+        }
+
+        async function submitAddBatch() {
+            const offeringId = @Model.OfferingId;
+            const yl = parseInt(document.getElementById('batchYearLevel').value);
+            const sem = document.getElementById('batchSemester').value;
+            const name = document.getElementById('batchName').value;
+            const body = new URLSearchParams({ offeringId, yearLevel: yl, semester: sem, batchName: name });
+
+            const resp = await fetch('@Url.Action("AddBatch")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: body.toString()
+            });
+            const json = await resp.json();
+            if (json.success) location.reload();
+            else alert(json.error || 'Error');
+        }
+
+        async function submitAddCourse(batchId) {
+            const form = document.querySelector('#addCourseForm-' + batchId);
+            if(!form) return;
+            const fd = new FormData(form);
+            const roomTypeIds = [];
+            const hours = {};
+            
+            form.querySelectorAll('.rt-check:checked').forEach(ch => {
+                const id = parseInt(ch.value);
+                roomTypeIds.push(id);
+                hours[id] = parseInt(form.querySelector('.rt-hours[data-rt="' + id + '"]').value || 0);
+            });
+
+            const payload = {
+                BatchId: batchId,
+                CourseId: parseInt(fd.get('CourseId')),
+                InstructorId: fd.get('InstructorId') || null,
+                RoomTypeIds: roomTypeIds,
+                HoursPerRoomType: hours
+            };
+
+            const resp = await fetch('@Url.Action("AddCourseToBatch")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const j = await resp.json();
+            if (j.success) location.reload();
+            else alert(j.error || 'Error');
+        }
+
+        async function deleteBatch(batchId) {
+            if (!confirm('Delete batch and all courses?')) return;
+            const r = await fetch('@Url.Action("DeleteBatch")', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: 'batchId=' + batchId });
+            if ((await r.json()).success) location.reload(); else alert('Failed');
+        }
+
+        async function deleteCourse(sectionId) {
+            if (!confirm('Remove course?')) return;
+            const r = await fetch('@Url.Action("DeleteCourse")', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: 'sectionId=' + sectionId });
+            if ((await r.json()).success) location.reload(); else alert('Failed');
+        }
+    </script>
+}

@@ -9,9 +9,7 @@
     <DockerfileContext>.</DockerfileContext>
   </PropertyGroup>
 
-  <ItemGroup>
-    <None Remove="ClientApp\main.tsx" />
-  </ItemGroup>
+
 
   <ItemGroup>
     <Content Include="webpack.config.js" />
@@ -38,9 +36,6 @@
     <PackageReference Include="Google.OrTools" Version="9.14.6206" />
   </ItemGroup>
 
-  <ItemGroup>
-    <TypeScriptCompile Include="ClientApp\main.tsx" />
-  </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Migrations\" />

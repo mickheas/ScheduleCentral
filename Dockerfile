@@ -35,8 +35,16 @@
 # WORKDIR /app
 # COPY --from=publish /app/publish .
 # ENTRYPOINT ["dotnet", "ScheduleCentral.dll"]
+
 # Build stage
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+
+# Install Node.js & npm (Debian-based)
+RUN apt-get update && \
+    apt-get install -y curl gnupg && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs
+
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
@@ -47,7 +55,7 @@ RUN dotnet restore "./ScheduleCentral.csproj"
 # Copy everything
 COPY . .
 
-# Install Node dependencies for the React app
+# Install Node dependencies for React app
 WORKDIR /src/ClientApp
 RUN npm install
 RUN npm run build
@@ -61,7 +69,7 @@ FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
 RUN dotnet publish "./ScheduleCentral.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
-# Final stage
+# Final runtime container
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 COPY --from=publish /app/publish .

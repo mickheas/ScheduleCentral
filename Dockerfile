@@ -10,11 +10,18 @@ EXPOSE 8081
 
 # This stage is used to build the service project
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+
+# Install Node.js (needed for TypeScript build)
+RUN apt-get update && apt-get install -y nodejs npm
+
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+
 COPY ["ScheduleCentral.csproj", "."]
 RUN dotnet restore "./ScheduleCentral.csproj"
+
 COPY . .
+
 WORKDIR "/src/."
 RUN dotnet build "./ScheduleCentral.csproj" -c $BUILD_CONFIGURATION -o /app/build
 

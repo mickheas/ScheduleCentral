@@ -56,9 +56,9 @@ RUN dotnet restore "./ScheduleCentral.csproj"
 COPY . .
 
 # Install Node dependencies for React app
-WORKDIR /src/ClientApp
-RUN npm install
-RUN npm run build
+# WORKDIR /src/ClientApp
+# RUN npm install
+# RUN npm run build
 
 # Build .NET project
 WORKDIR /src

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using ScheduleCentral.Models;
 using ScheduleCentral.Services;
 using Microsoft.AspNetCore.Identity.UI.Services;
+//using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,13 +34,14 @@ builder.Services.AddScoped<ScheduleSubscriptionService>();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
+// builder.Services.AddDataProtection()
+//     .PersistKeysToDbContext<ApplicationDbContext>();
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddRoles<IdentityRole>() // Ensure Roles are enabled
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddTokenProvider<EmailTokenProvider<ApplicationUser>>("Email")
     .AddDefaultTokenProviders();
-    
+
 // Check if the application is running in Development mode
 if (builder.Environment.IsDevelopment())
 {
@@ -64,6 +66,10 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
+        var context = services.GetRequiredService<ApplicationDbContext>();
+        // This creates the tables if they don't exist
+        await context.Database.MigrateAsync();
+
         var seeder = services.GetRequiredService<DataSeeder>();
         await seeder.SeedDataAsync();
     }

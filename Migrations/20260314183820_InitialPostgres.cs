@@ -816,18 +816,18 @@ namespace ScheduleCentral.Migrations
                 columns: new[] { "Id", "ConcurrencyStamp", "Name", "NormalizedName" },
                 values: new object[,]
                 {
-                    { "2a8e9d3c-5f7a-4b6d-9c1e-0d2f3a4e5b6c", "e3c277ce-ae45-4ffd-96ad-aeb4b45008d7", "Department", "DEPARTMENT" },
-                    { "34f669a9-3c3b-4c0d-a320-c1143f295621", "a0807117-46e5-4872-90f8-4ee1306d9d00", "Admin", "ADMIN" },
-                    { "5798b3f2-1d5d-4f81-a75d-6c1b3f9d44e5", "0f93355b-2032-46da-9e36-8182aa140ced", "ProgramOfficer", "PROGRAMOFFICER" },
-                    { "62a4c8e7-6b4e-4f3a-a5c1-8b0d2e4f7c9e", "6bcaa411-8c6a-4f92-8415-82c031aba9c8", "Student", "STUDENT" },
-                    { "98c2d1b8-2a2b-4d4b-9e0a-7c9d1a8f6d53", "6db258ba-6d18-4e4a-9a46-b8e094c7f506", "Instructor", "INSTRUCTOR" },
-                    { "d1b5f2c4-8g9h-4i0j-k2l3-m4n5o6p7q8r9", "af1c8d22-6ebb-4dde-96f8-93fd1ccac727", "TopManagement", "TOPMANAGEMENT" }
+                    { "2a8e9d3c-5f7a-4b6d-9c1e-0d2f3a4e5b6c", "e4c5d6f7-a8b9-0c1d-2e3f-4a5b6c7d8e9f", "Department", "DEPARTMENT" },
+                    { "34f669a9-3c3b-4c0d-a320-c1143f295621", "a0e1f2b3-c4d5-6e7f-8a9b-0c1d2e3f4a5b", "Admin", "ADMIN" },
+                    { "5798b3f2-1d5d-4f81-a75d-6c1b3f9d44e5", "b1f2a3c4-d5e6-7f8a-9b0c-1d2e3f4a5b6c", "ProgramOfficer", "PROGRAMOFFICER" },
+                    { "62a4c8e7-6b4e-4f3a-a5c1-8b0d2e4f7c9e", "d3b4c5e6-f7a8-9b0c-1d2e-3f4a5b6c7d8e", "Student", "STUDENT" },
+                    { "98c2d1b8-2a2b-4d4b-9e0a-7c9d1a8f6d53", "c2a3b4d5-e6f7-8a9b-0c1d-2e3f4a5b6c7d", "Instructor", "INSTRUCTOR" },
+                    { "d1b5f2c4-8g9h-4i0j-k2l3-m4n5o6p7q8r9", "f5d6e7a8-b9c0-1d2e-3f4a-5b6c7d8e9f0a", "TopManagement", "TOPMANAGEMENT" }
                 });
 
             migrationBuilder.InsertData(
                 table: "AspNetUsers",
                 columns: new[] { "Id", "AccessFailedCount", "AvailabilitySlots", "AvailableHours", "ConcurrencyStamp", "Department", "Email", "EmailConfirmed", "FirstName", "IsApproved", "IsSelfRegistered", "LastName", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "RegisteredAtUtc", "SecurityStamp", "TwoFactorEnabled", "UserName" },
-                values: new object[] { "b1f8e5d0-8b1e-45a7-86f2-8c9a6d0c73e0", 0, null, 12, "1c13d21a-236c-4ef1-8a0a-967f548bf108", null, "mikyasabebe76@gmail.com", true, "Mikyas", true, null, "Abebe", false, null, "MIKYASABEBE76@GMAIL.COM", "MIKYASABEBE76@GMAIL.COM", "AQAAAAIAAYagAAAAENDQIPRgKERCYsXCSBvEG/UVCfekTDCIJZ/cgTPO0vcSCD6dXtednNFJcfZLzLCbxw==", null, false, null, "11b221bf-aa5e-4b55-afc6-7979af1b88bc", true, "mikyasabebe76@gmail.com" });
+                values: new object[] { "b1f8e5d0-8b1e-45a7-86f2-8c9a6d0c73e0", 0, null, 12, "dffb9fd2-0a31-485d-a1e7-4278972a292d", null, "mikyasabebe76@gmail.com", true, "Mikyas", true, null, "Abebe", false, null, "MIKYASABEBE76@GMAIL.COM", "MIKYASABEBE76@GMAIL.COM", "AQAAAAIAAYagAAAAEO/Z0gngWR3mqspAtuMO3PBX23B6UstFq1WakFIhByHZpWw0fLSf1iCS+Lz32KeSwA==", null, false, null, "a1b2c3d4-e5f6-7890-abcd-ef1234567890", false, "mikyasabebe76@gmail.com" });
 
             migrationBuilder.InsertData(
                 table: "RoomTypes",

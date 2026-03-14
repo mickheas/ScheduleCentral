@@ -2,22 +2,23 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using System.Net.Mail;
 using System.Net;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 
 namespace ScheduleCentral.Services
 {
-    // Make sure you have the necessary SMTP settings in appsettings.json
     public class EmailSender : IEmailSender
     {
         private readonly IConfiguration _configuration;
+        private readonly ILogger<EmailSender> _logger;
 
-        // IConfiguration is injected to read SMTP settings from appsettings.json
-        public EmailSender(IConfiguration configuration)
+        public EmailSender(IConfiguration configuration, ILogger<EmailSender> logger)
         {
             _configuration = configuration;
+            _logger = logger;
         }
 
-        public Task SendEmailAsync(string email, string subject, string htmlMessage)
+        public async Task SendEmailAsync(string email, string subject, string htmlMessage)
         {
             // Get settings from Configuration
             var host = _configuration["EmailSettings:SmtpHost"];
@@ -27,25 +28,37 @@ namespace ScheduleCentral.Services
             var password = _configuration["EmailSettings:Password"];
             var senderName = _configuration["EmailSettings:SenderName"];
             
-            // Basic validation
-            if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(password))
+            // Validate configuration — log warning but don't crash the app
+            if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(password))
             {
-                // In a real app, log this error instead of throwing
-                throw new InvalidOperationException("Email sender configuration is missing or incomplete.");
+                _logger.LogWarning(
+                    "Email sender configuration is missing or incomplete (Host={Host}, User={User}). " +
+                    "Email to {Email} with subject '{Subject}' was NOT sent. " +
+                    "Please configure EmailSettings in appsettings.json or environment variables.",
+                    host, userName, email, subject);
+                return;
             }
 
-            var client = new SmtpClient(host, port)
+            try
             {
-                Credentials = new NetworkCredential(userName, password),
-                EnableSsl = enableSsl,
-            };
+                var client = new SmtpClient(host, port)
+                {
+                    Credentials = new NetworkCredential(userName, password),
+                    EnableSsl = enableSsl,
+                };
 
-            var mailMessage = new MailMessage(userName, email, subject, htmlMessage)
+                var mailMessage = new MailMessage(userName, email, subject, htmlMessage)
+                {
+                    IsBodyHtml = true
+                };
+
+                await client.SendMailAsync(mailMessage);
+                _logger.LogInformation("Email sent successfully to {Email}, subject: {Subject}", email, subject);
+            }
+            catch (Exception ex)
             {
-                IsBodyHtml = true
-            };
-
-            return client.SendMailAsync(mailMessage);
+                _logger.LogError(ex, "Failed to send email to {Email}, subject: {Subject}", email, subject);
+            }
         }
     }
 }

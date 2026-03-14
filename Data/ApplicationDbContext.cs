@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ScheduleCentral.Models;
@@ -24,12 +24,12 @@ namespace ScheduleCentral.Data
             // 1. Seed Roles
             var roles = new List<IdentityRole>
             {
-                new IdentityRole { Id = "34f669a9-3c3b-4c0d-a320-c1143f295621", Name = "Admin", NormalizedName = "ADMIN", ConcurrencyStamp = Guid.NewGuid().ToString() },
-                new IdentityRole { Id = "5798b3f2-1d5d-4f81-a75d-6c1b3f9d44e5", Name = "ProgramOfficer", NormalizedName = "PROGRAMOFFICER", ConcurrencyStamp = Guid.NewGuid().ToString() },
-                new IdentityRole { Id = "98c2d1b8-2a2b-4d4b-9e0a-7c9d1a8f6d53", Name = "Instructor", NormalizedName = "INSTRUCTOR", ConcurrencyStamp = Guid.NewGuid().ToString() },
-                new IdentityRole { Id = "62a4c8e7-6b4e-4f3a-a5c1-8b0d2e4f7c9e", Name = "Student", NormalizedName = "STUDENT", ConcurrencyStamp = Guid.NewGuid().ToString() },
-                new IdentityRole { Id = "2a8e9d3c-5f7a-4b6d-9c1e-0d2f3a4e5b6c", Name = "Department", NormalizedName = "DEPARTMENT", ConcurrencyStamp = Guid.NewGuid().ToString() },
-                new IdentityRole { Id = "d1b5f2c4-8g9h-4i0j-k2l3-m4n5o6p7q8r9", Name = "TopManagement", NormalizedName = "TOPMANAGEMENT", ConcurrencyStamp = Guid.NewGuid().ToString() }
+                new IdentityRole { Id = "34f669a9-3c3b-4c0d-a320-c1143f295621", Name = "Admin", NormalizedName = "ADMIN", ConcurrencyStamp = "a0e1f2b3-c4d5-6e7f-8a9b-0c1d2e3f4a5b" },
+                new IdentityRole { Id = "5798b3f2-1d5d-4f81-a75d-6c1b3f9d44e5", Name = "ProgramOfficer", NormalizedName = "PROGRAMOFFICER", ConcurrencyStamp = "b1f2a3c4-d5e6-7f8a-9b0c-1d2e3f4a5b6c" },
+                new IdentityRole { Id = "98c2d1b8-2a2b-4d4b-9e0a-7c9d1a8f6d53", Name = "Instructor", NormalizedName = "INSTRUCTOR", ConcurrencyStamp = "c2a3b4d5-e6f7-8a9b-0c1d-2e3f4a5b6c7d" },
+                new IdentityRole { Id = "62a4c8e7-6b4e-4f3a-a5c1-8b0d2e4f7c9e", Name = "Student", NormalizedName = "STUDENT", ConcurrencyStamp = "d3b4c5e6-f7a8-9b0c-1d2e-3f4a5b6c7d8e" },
+                new IdentityRole { Id = "2a8e9d3c-5f7a-4b6d-9c1e-0d2f3a4e5b6c", Name = "Department", NormalizedName = "DEPARTMENT", ConcurrencyStamp = "e4c5d6f7-a8b9-0c1d-2e3f-4a5b6c7d8e9f" },
+                new IdentityRole { Id = "d1b5f2c4-8g9h-4i0j-k2l3-m4n5o6p7q8r9", Name = "TopManagement", NormalizedName = "TOPMANAGEMENT", ConcurrencyStamp = "f5d6e7a8-b9c0-1d2e-3f4a-5b6c7d8e9f0a" }
             };
             
 
@@ -49,9 +49,9 @@ namespace ScheduleCentral.Data
                 EmailConfirmed = true,
                 FirstName = "Mikyas",
                 LastName = "Abebe",
-                TwoFactorEnabled = true,
+                TwoFactorEnabled = false,
                 IsApproved = true,
-                SecurityStamp = Guid.NewGuid().ToString(),
+                SecurityStamp = "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
             };
 
             // Create a PasswordHasher instance to generate a hash for "Admin!23"

@@ -1,108 +1,115 @@
 using ScheduleCentral.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using System.Diagnostics; // Added for Debug.WriteLine
+using Microsoft.Extensions.Logging;
 
 namespace ScheduleCentral.Services
 {
     public class DataSeeder
     {
-        private readonly IServiceProvider _serviceProvider;
+        private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<DataSeeder> _logger;
 
-        public DataSeeder(IServiceProvider serviceProvider, IConfiguration configuration)
+        public DataSeeder(
+            RoleManager<IdentityRole> roleManager,
+            UserManager<ApplicationUser> userManager,
+            IConfiguration configuration,
+            ILogger<DataSeeder> logger)
         {
-            _serviceProvider = serviceProvider;
+            _roleManager = roleManager;
+            _userManager = userManager;
             _configuration = configuration;
+            _logger = logger;
         }
 
         public async Task SeedDataAsync()
         {
-            using (var scope = _serviceProvider.CreateScope())
+            // === 1. Ensure Roles Exist ===
+            string[] roleNames = {
+                "Admin",
+                "ProgramOfficer",
+                "Instructor",
+                "Student",
+                "Department",
+                "TopManagement"
+            };
+
+            foreach (var roleName in roleNames)
             {
-                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-
-                // === 1. Create Roles ===
-                string[] roleNames = {
-                    "Admin",
-                    "ProgramOfficer",
-                    "Instructor",
-                    "Student",
-                    "Department",
-                    "TopManagement"
-                };
-
-                foreach (var roleName in roleNames)
+                if (!await _roleManager.RoleExistsAsync(roleName))
                 {
-                    if (!await roleManager.RoleExistsAsync(roleName))
+                    var result = await _roleManager.CreateAsync(new IdentityRole(roleName));
+                    if (!result.Succeeded)
                     {
-                        var result = await roleManager.CreateAsync(new IdentityRole(roleName));
-                        if (!result.Succeeded)
+                        _logger.LogError("Failed to create role: {RoleName}", roleName);
+                        foreach (var error in result.Errors)
                         {
-                            Debug.WriteLine($"Failed to create role: {roleName}");
-                            foreach (var error in result.Errors)
-                            {
-                                Debug.WriteLine($"\tError: {error.Description}");
-                            }
+                            _logger.LogError("  Role Error: {ErrorDescription}", error.Description);
                         }
-                    }
-                }
-
-
-                 // === 2. Create Default Admin User ===
-                // Use IConfiguration to retrieve credentials, defaulting to secure local values
-                var adminEmail = _configuration["DefaultAdmin:Email"] ?? "mikyasabebe76@gmail.com";
-                var adminPassword = _configuration["DefaultAdmin:Password"] ?? "Admin!23";
-                var adminUser = await userManager.FindByEmailAsync(adminEmail);
-
-                if (adminUser == null)
-                {
-                    Debug.WriteLine($"Attempting to create default Admin user: {adminEmail}");
-
-                    var newAdminUser = new ApplicationUser
-                    {
-                        UserName = adminEmail,
-                        Email = adminEmail,
-                        FirstName = "Mikyas",
-                        LastName = "Abebe",
-                        EmailConfirmed = true,
-                        IsApproved = true // Admin is approved by default
-                    };
-                    
-                    var result = await userManager.CreateAsync(newAdminUser, adminPassword);
-
-                    if (result.Succeeded)
-                    {
-                        Debug.WriteLine("Admin user created successfully. Assigning role...");
-                        // Assign the Admin role
-                        var roleResult = await userManager.AddToRoleAsync(newAdminUser, "Admin");
-
-                        if (!roleResult.Succeeded)
-                        {
-                            Debug.WriteLine($"Failed to assign 'Admin' role to {adminEmail}.");
-                            foreach (var error in roleResult.Errors)
-                            {
-                                Debug.WriteLine($"\tRole Error: {error.Description}");
-                            }
-                        } else {
-                            Debug.WriteLine("Admin role assigned successfully.");
-                        }
-                        await userManager.SetTwoFactorEnabledAsync(newAdminUser, false);
                     }
                     else
                     {
-                        Debug.WriteLine($"Failed to create Admin user {adminEmail}.");
-                        foreach (var error in result.Errors)
+                        _logger.LogInformation("Created role: {RoleName}", roleName);
+                    }
+                }
+            }
+
+            // === 2. Ensure Default Admin User Exists ===
+            // The migration seeds the admin with mikyasabebe76@gmail.com / Admin!23
+            // This seeder acts as a fallback using config values
+            var adminEmail = _configuration["DefaultAdmin:Email"] ?? "mikyasabebe76@gmail.com";
+            var adminPassword = _configuration["DefaultAdmin:Password"] ?? "Admin!23";
+            var adminUser = await _userManager.FindByEmailAsync(adminEmail);
+
+            if (adminUser == null)
+            {
+                _logger.LogInformation("Attempting to create default Admin user: {AdminEmail}", adminEmail);
+
+                var newAdminUser = new ApplicationUser
+                {
+                    UserName = adminEmail,
+                    Email = adminEmail,
+                    FirstName = "Admin",
+                    LastName = "User",
+                    EmailConfirmed = true,
+                    IsApproved = true
+                };
+                
+                var result = await _userManager.CreateAsync(newAdminUser, adminPassword);
+
+                if (result.Succeeded)
+                {
+                    _logger.LogInformation("Admin user created successfully. Assigning role...");
+                    var roleResult = await _userManager.AddToRoleAsync(newAdminUser, "Admin");
+
+                    if (!roleResult.Succeeded)
+                    {
+                        _logger.LogError("Failed to assign 'Admin' role to {AdminEmail}", adminEmail);
+                        foreach (var error in roleResult.Errors)
                         {
-                            Debug.WriteLine($"\tUser Error: {error.Description}");
+                            _logger.LogError("  Role Error: {ErrorDescription}", error.Description);
                         }
                     }
-                } else {
-                    Debug.WriteLine($"Admin user {adminEmail} already exists. Skipping creation.");
+                    else
+                    {
+                        _logger.LogInformation("Admin role assigned successfully.");
+                    }
+                    await _userManager.SetTwoFactorEnabledAsync(newAdminUser, false);
                 }
-                
+                else
+                {
+                    _logger.LogError("Failed to create Admin user {AdminEmail}", adminEmail);
+                    foreach (var error in result.Errors)
+                    {
+                        _logger.LogError("  User Error: {ErrorDescription}", error.Description);
+                    }
+                }
+            }
+            else
+            {
+                _logger.LogInformation("Admin user {AdminEmail} already exists. Skipping creation.", adminEmail);
             }
         }
     }

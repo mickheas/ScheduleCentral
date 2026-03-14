@@ -89,7 +89,7 @@ namespace ScheduleCentral.Services
                         } else {
                             Debug.WriteLine("Admin role assigned successfully.");
                         }
-                        await userManager.SetTwoFactorEnabledAsync(newAdminUser, true);
+                        await userManager.SetTwoFactorEnabledAsync(newAdminUser, false);
                     }
                     else
                     {
@@ -103,7 +103,6 @@ namespace ScheduleCentral.Services
                     Debug.WriteLine($"Admin user {adminEmail} already exists. Skipping creation.");
                 }
                 
-
             }
         }
     }

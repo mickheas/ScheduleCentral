@@ -70,11 +70,11 @@ ScheduleCentral aims to eliminate manual scheduling errors, reduce administrativ
 
 ## System Architecture
 
-* **Backend:** ASP.NET / Laravel (depending on deployment)
+* **Backend:** ASP.NET 
 * **Scheduling Logic:** CSP-based algorithm
 * **Database:** Relational (normalized up to 3NF)
 * **Authentication:** Framework-provided hashing and session management
-* **Data Input:** CSV-based course offering uploads
+* **Data Input:** Modular
 
 ---
 

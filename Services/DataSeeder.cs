@@ -110,6 +110,21 @@ namespace ScheduleCentral.Services
             else
             {
                 _logger.LogInformation("Admin user {AdminEmail} already exists. Skipping creation.", adminEmail);
+                
+                // Self-healing: If the old database wasn't dropped, the existing admin user might still have 2FA enabled
+                // or have an unconfirmed email. We force-disable 2FA and force-confirm the email here.
+                if (await _userManager.GetTwoFactorEnabledAsync(adminUser))
+                {
+                    _logger.LogWarning("Admin user {AdminEmail} had 2FA enabled. Force-disabling it...", adminEmail);
+                    await _userManager.SetTwoFactorEnabledAsync(adminUser, false);
+                }
+
+                if (!await _userManager.IsEmailConfirmedAsync(adminUser))
+                {
+                    _logger.LogWarning("Admin user {AdminEmail} was not confirmed. Force-confirming...", adminEmail);
+                    var token = await _userManager.GenerateEmailConfirmationTokenAsync(adminUser);
+                    await _userManager.ConfirmEmailAsync(adminUser, token);
+                }
             }
         }
     }

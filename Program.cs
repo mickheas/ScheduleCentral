@@ -32,7 +32,7 @@ builder.Services.AddScoped<ScheduleSubscriptionService>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
+builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = false)
     .AddRoles<IdentityRole>() // Ensure Roles are enabled
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddTokenProvider<EmailTokenProvider<ApplicationUser>>("Email")

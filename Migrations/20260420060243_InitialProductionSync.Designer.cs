@@ -12,8 +12,8 @@ using ScheduleCentral.Data;
 namespace ScheduleCentral.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260420040549_InitialPostgresss")]
-    partial class InitialPostgresss
+    [Migration("20260420060243_InitialProductionSync")]
+    partial class InitialProductionSync
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -329,7 +329,7 @@ namespace ScheduleCentral.Migrations
                             Id = "b1f8e5d0-8b1e-45a7-86f2-8c9a6d0c73e0",
                             AccessFailedCount = 0,
                             AvailableHours = 12,
-                            ConcurrencyStamp = "ab058b5c-b1c0-4362-8f2e-db929c50870d",
+                            ConcurrencyStamp = "1841aac8-07c2-4248-b326-2357ee21d1ab",
                             Email = "mikyasabebe76@gmail.com",
                             EmailConfirmed = true,
                             FirstName = "Mikyas",
@@ -338,7 +338,7 @@ namespace ScheduleCentral.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "MIKYASABEBE76@GMAIL.COM",
                             NormalizedUserName = "MIKYASABEBE76@GMAIL.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEACspi9EhL/6nXbTE1TFzfeBVlcXzElu9DqgIqf557z9160ILA8AlF7GVqgieXfFfA==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEEACKFn7Sr3Gy4w3X0iXPoviOFcv6jQTeShJ2UXBaN5uCWr3+VSHVxubf/JXhMBFiA==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
                             TwoFactorEnabled = false,

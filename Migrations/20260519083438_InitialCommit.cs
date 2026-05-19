@@ -9,7 +9,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ScheduleCentral.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialProductionSync : Migration
+    public partial class InitialCommit : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -827,7 +827,7 @@ namespace ScheduleCentral.Migrations
             migrationBuilder.InsertData(
                 table: "AspNetUsers",
                 columns: new[] { "Id", "AccessFailedCount", "AvailabilitySlots", "AvailableHours", "ConcurrencyStamp", "Department", "Email", "EmailConfirmed", "FirstName", "IsApproved", "IsSelfRegistered", "LastName", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "RegisteredAtUtc", "SecurityStamp", "TwoFactorEnabled", "UserName" },
-                values: new object[] { "b1f8e5d0-8b1e-45a7-86f2-8c9a6d0c73e0", 0, null, 12, "1841aac8-07c2-4248-b326-2357ee21d1ab", null, "mikyasabebe76@gmail.com", true, "Mikyas", true, null, "Abebe", false, null, "MIKYASABEBE76@GMAIL.COM", "MIKYASABEBE76@GMAIL.COM", "AQAAAAIAAYagAAAAEEACKFn7Sr3Gy4w3X0iXPoviOFcv6jQTeShJ2UXBaN5uCWr3+VSHVxubf/JXhMBFiA==", null, false, null, "a1b2c3d4-e5f6-7890-abcd-ef1234567890", false, "mikyasabebe76@gmail.com" });
+                values: new object[] { "b1f8e5d0-8b1e-45a7-86f2-8c9a6d0c73e0", 0, null, 12, "942d5100-1192-42b1-b6db-c792303455a0", null, "mikyasabebe76@gmail.com", true, "Mikyas", true, null, "Abebe", false, null, "MIKYASABEBE76@GMAIL.COM", "MIKYASABEBE76@GMAIL.COM", "AQAAAAIAAYagAAAAENoqNe8h5eaezJCm5tDAND95W61inlq95SRS73TG58OUCf9LjKVClbezfdT+BlcDMg==", null, false, null, "a1b2c3d4-e5f6-7890-abcd-ef1234567890", false, "mikyasabebe76@gmail.com" });
 
             migrationBuilder.InsertData(
                 table: "RoomTypes",

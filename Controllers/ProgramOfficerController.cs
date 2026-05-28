@@ -139,8 +139,8 @@ namespace ScheduleCentral.Controllers
             var period = new AcademicPeriod
             {
                 Name = Name.Trim(),
-                StartDate = start,
-                EndDate = end,
+                StartDate = DateTime.SpecifyKind(DateTime.Parse(StartDate), DateTimeKind.Utc),
+    EndDate = DateTime.SpecifyKind(DateTime.Parse(EndDate), DateTimeKind.Utc),
                 IsActive = IsActive
             };
 

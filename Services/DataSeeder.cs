@@ -59,7 +59,7 @@ namespace ScheduleCentral.Services
             // === 2. Ensure Default Admin User Exists ===
             // The migration seeds the admin with mikyasabebe76@gmail.com / Admin!23
             // This seeder acts as a fallback using config values
-            var adminEmail = _configuration["DefaultAdmin:Email"] ?? "mikyasabebe76@gmail.com";
+            var adminEmail = _configuration["DefaultAdmin:Email"] ?? "admin@csms.local";
             var adminPassword = _configuration["DefaultAdmin:Password"] ?? "Admin!23";
             var adminUser = await _userManager.FindByEmailAsync(adminEmail);
 

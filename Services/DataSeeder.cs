@@ -59,7 +59,7 @@ namespace ScheduleCentral.Services
             // === 2. Ensure Default Admin User Exists ===
             // The migration seeds the admin with mikyasabebe76@gmail.com / Admin!23
             // This seeder acts as a fallback using config values
-            var adminEmail = _configuration["DefaultAdmin:Email"] ?? "admin@csms.local";
+            var adminEmail = _configuration["DefaultAdmin:Email"] ?? "mikyasabebe76@gmail.com";
             var adminPassword = _configuration["DefaultAdmin:Password"] ?? "Admin!23";
             var adminUser = await _userManager.FindByEmailAsync(adminEmail);
 
@@ -107,25 +107,53 @@ namespace ScheduleCentral.Services
                     }
                 }
             }
-            else
-            {
-                _logger.LogInformation("Admin user {AdminEmail} already exists. Skipping creation.", adminEmail);
-                
-                // Self-healing: If the old database wasn't dropped, the existing admin user might still have 2FA enabled
-                // or have an unconfirmed email. We force-disable 2FA and force-confirm the email here.
-                if (await _userManager.GetTwoFactorEnabledAsync(adminUser))
-                {
-                    _logger.LogWarning("Admin user {AdminEmail} had 2FA enabled. Force-disabling it...", adminEmail);
-                    await _userManager.SetTwoFactorEnabledAsync(adminUser, false);
-                }
+   else
+{
+    _logger.LogInformation("Admin user {AdminEmail} already exists. Skipping creation.", adminEmail);
+    
+    bool requiresUpdate = false;
 
-                if (!await _userManager.IsEmailConfirmedAsync(adminUser))
-                {
-                    _logger.LogWarning("Admin user {AdminEmail} was not confirmed. Force-confirming...", adminEmail);
-                    var token = await _userManager.GenerateEmailConfirmationTokenAsync(adminUser);
-                    await _userManager.ConfirmEmailAsync(adminUser, token);
-                }
+    // Self-healing: If the admin was deactivated, force-activate them
+    if (!adminUser.IsApproved)
+    {
+        _logger.LogWarning("Admin user {AdminEmail} was deactivated! Force-activating...", adminEmail);
+        adminUser.IsApproved = true;
+        requiresUpdate = true;
+    }
+
+    // Existing self-healing logic
+    if (await _userManager.GetTwoFactorEnabledAsync(adminUser))
+    {
+        _logger.LogWarning("Admin user {AdminEmail} had 2FA enabled. Force-disabling it...", adminEmail);
+        await _userManager.SetTwoFactorEnabledAsync(adminUser, false);
+    }
+
+    if (!await _userManager.IsEmailConfirmedAsync(adminUser))
+    {
+        _logger.LogWarning("Admin user {AdminEmail} was not confirmed. Force-confirming...", adminEmail);
+        var token = await _userManager.GenerateEmailConfirmationTokenAsync(adminUser);
+        await _userManager.ConfirmEmailAsync(adminUser, token);
+    }
+
+    // Save changes if the approval status was modified
+    if (requiresUpdate)
+    {
+        var updateResult = await _userManager.UpdateAsync(adminUser);
+        if (!updateResult.Succeeded)
+        {
+            _logger.LogError("Failed to force-activate the Admin user account.");
+            foreach (var error in updateResult.Errors)
+            {
+                _logger.LogError("  Update Error: {ErrorDescription}", error.Description);
             }
+        }
+        else
+        {
+            _logger.LogInformation("Admin user account successfully reactivated.");
+        }
+    }
+}
+
         }
     }
 }

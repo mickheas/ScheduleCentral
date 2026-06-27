@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using ScheduleCentral.Models;
 using System.Reflection.Emit;
 
@@ -8,9 +9,43 @@ namespace ScheduleCentral.Data
 {
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        private readonly IHttpContextAccessor? _httpContextAccessor;
+
+        public ApplicationDbContext(
+            DbContextOptions<ApplicationDbContext> options,
+            IHttpContextAccessor? httpContextAccessor = null)
             : base(options)
         {
+            _httpContextAccessor = httpContextAccessor;
+        }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            try
+            {
+                var httpContext = _httpContextAccessor?.HttpContext;
+                if (httpContext != null)
+                {
+                    var session = httpContext.Session;
+                    if (session != null)
+                    {
+                        var demoRole = session.GetString("DemoRole");
+                        if (!string.IsNullOrEmpty(demoRole))
+                        {
+                            var sessionId = session.Id;
+                            var conn = ScheduleCentral.Services.DemoDbContextConnectionCache.GetConnection(sessionId);
+                            optionsBuilder.UseSqlite(conn);
+                            return;
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Accessing session before context is fully initialized/session is loaded
+            }
+
+            base.OnConfiguring(optionsBuilder);
         }
 
         protected override void OnModelCreating(ModelBuilder builder)

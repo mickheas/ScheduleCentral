@@ -21,6 +21,37 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;             // Make the session cookie essential
 });
 builder.Services.AddRazorPages();
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = 429;
+    options.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+    {
+        string? demoRole = null;
+        try
+        {
+            demoRole = httpContext.Session?.GetString("DemoRole");
+        }
+        catch (Exception)
+        {
+        }
+
+        if (!string.IsNullOrEmpty(demoRole))
+        {
+            return System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: httpContext.Session?.Id ?? "default",
+                factory: partition => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+                {
+                    AutoReplenishment = true,
+                    PermitLimit = 30,
+                    QueueLimit = 0,
+                    Window = TimeSpan.FromMinutes(1)
+                });
+        }
+        return System.Threading.RateLimiting.RateLimitPartition.GetNoLimiter("NoLimit");
+    });
+});
 
 // Register the DataSeeder and other services
 builder.Services.AddScoped<DataSeeder>();
@@ -29,8 +60,46 @@ builder.Services.AddScoped<ScheduleSolverService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<ScheduleSubscriptionService>();
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<DbContextOptions<ApplicationDbContext>>(serviceProvider =>
+{
+    var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
+    var httpContextAccessor = serviceProvider.GetRequiredService<IHttpContextAccessor>();
+    var httpContext = httpContextAccessor.HttpContext;
+
+    string? demoRole = null;
+    try
+    {
+        demoRole = httpContext?.Session?.GetString("DemoRole");
+    }
+    catch (Exception)
+    {
+    }
+
+    if (!string.IsNullOrEmpty(demoRole))
+    {
+        var sessionId = httpContext!.Session.Id;
+        var conn = ScheduleCentral.Services.DemoDbContextConnectionCache.GetConnection(sessionId);
+        optionsBuilder.UseSqlite(conn);
+    }
+    else
+    {
+        var config = serviceProvider.GetRequiredService<IConfiguration>();
+        var connStr = config.GetConnectionString("DefaultConnection");
+        optionsBuilder.UseNpgsql(connStr, npgsqlOptions =>
+        {
+            // Retry on transient failures (e.g. Render free-tier Postgres going idle)
+            npgsqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(10),
+                errorCodesToAdd: null);
+            npgsqlOptions.CommandTimeout(60);
+        });
+    }
+
+    return optionsBuilder.Options;
+});
+
+builder.Services.AddScoped<ApplicationDbContext>();
 
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = false)
     .AddRoles<IdentityRole>() // Ensure Roles are enabled
@@ -83,6 +152,10 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseSession();
+app.UseRateLimiter();
+app.UseMiddleware<ScheduleCentral.Middleware.DemoAuthMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

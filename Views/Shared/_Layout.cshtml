@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Identity
 @using ScheduleCentral.Models
 @using ScheduleCentral.Services
 @inject SignInManager<ApplicationUser> SignInManager
@@ -360,6 +360,7 @@
     </style>
 </head>
 <body>
+    <partial name="_DemoBanner" />
 
     @if (!hideNav)
     {

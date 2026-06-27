@@ -1,4 +1,4 @@
-﻿@using System.Text.Json
+@using System.Text.Json
 @model ScheduleCentral.Models.ViewModels.DashboardViewModel
 @{
     ViewData["Title"] = "Home";
@@ -39,10 +39,72 @@
         <div class="hero-section text-center">
             <h1 class="display-4 fw-bold mb-3">Welcome to CSMS</h1>
             <p class="lead mb-4">The comprehensive platform for academic scheduling, resource management, and conflict resolution.</p>
-            <div class="d-flex justify-content-center gap-3">
+            <div class="d-flex justify-content-center gap-3 align-items-center flex-wrap">
                 <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-light btn-lg px-5 fw-bold text-primary shadow-sm">
                     <i class="bi bi-box-arrow-in-right me-2"></i> Login to Portal
                 </a>
+                <div class="dropdown">
+                    <button class="btn btn-outline-light btn-lg px-5 fw-bold dropdown-toggle shadow-sm" type="button" id="demoDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-play-circle-fill me-2"></i> Try Demo Mode
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end p-2 border-0 shadow-lg mt-2" aria-labelledby="demoDropdown" style="min-width: 300px; border-radius: 0.75rem;">
+                        <li class="dropdown-header text-uppercase tracking-wider font-semibold text-xs text-secondary pb-2">Select a Role to Explore</li>
+                        <li>
+                            <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2" href="/Demo?role=Admin">
+                                <i class="bi bi-shield-lock text-danger fs-5"></i>
+                                <div>
+                                    <span class="d-block fw-bold text-dark text-sm">System Admin</span>
+                                    <span class="d-block text-muted text-xs">Manage users & departments</span>
+                                </div>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2" href="/Demo?role=ProgramOfficer">
+                                <i class="bi bi-calendar-range text-primary fs-5"></i>
+                                <div>
+                                    <span class="d-block fw-bold text-dark text-sm">Program Officer</span>
+                                    <span class="d-block text-muted text-xs">Generate & manage schedules</span>
+                                </div>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2" href="/Demo?role=Department">
+                                <i class="bi bi-building text-success fs-5"></i>
+                                <div>
+                                    <span class="d-block fw-bold text-dark text-sm">Department Head</span>
+                                    <span class="d-block text-muted text-xs">Manage catalog & offerings</span>
+                                </div>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2" href="/Demo?role=Instructor">
+                                <i class="bi bi-person-workspace text-info fs-5"></i>
+                                <div>
+                                    <span class="d-block fw-bold text-dark text-sm">Instructor</span>
+                                    <span class="d-block text-muted text-xs">Update availability & schedule</span>
+                                </div>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2" href="/Demo?role=TopManagement">
+                                <i class="bi bi-graph-up-arrow text-warning fs-5"></i>
+                                <div>
+                                    <span class="d-block fw-bold text-dark text-sm">Top Management</span>
+                                    <span class="d-block text-muted text-xs">Review audits & approvals</span>
+                                </div>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2" href="/Demo?role=Student">
+                                <i class="bi bi-mortarboard text-secondary fs-5"></i>
+                                <div>
+                                    <span class="d-block fw-bold text-dark text-sm">Student</span>
+                                    <span class="d-block text-muted text-xs">Browse courses & schedules</span>
+                                </div>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
 

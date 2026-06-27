@@ -110,33 +110,49 @@ namespace ScheduleCentral.Areas.Identity.Pages.Account
 
             if (ModelState.IsValid)
             {
-                var user = await _signInManager.UserManager.FindByEmailAsync(Input.Email);
-                if (user != null && user.IsApproved == false)
+                try
                 {
-                    ModelState.AddModelError(string.Empty, "Your account is pending approval. Please wait for an administrator to approve your account.");
-                    return Page();
-                }
+                    var user = await _signInManager.UserManager.FindByEmailAsync(Input.Email);
+                    if (user != null && user.IsApproved == false)
+                    {
+                        ModelState.AddModelError(string.Empty, "Your account is pending approval. Please wait for an administrator to approve your account.");
+                        return Page();
+                    }
 
-                // This doesn't count login failures towards account lockout
-                // To enable password failures to trigger account lockout, set lockoutOnFailure: true
-                var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
-                if (result.Succeeded)
-                {
-                    _logger.LogInformation("User logged in.");
-                    return LocalRedirect(Url.Content("~/"));
+                    // This doesn't count login failures towards account lockout
+                    // To enable password failures to trigger account lockout, set lockoutOnFailure: true
+                    var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+                    if (result.Succeeded)
+                    {
+                        _logger.LogInformation("User logged in.");
+                        return LocalRedirect(Url.Content("~/"));
+                    }
+                    if (result.RequiresTwoFactor)
+                    {
+                        return RedirectToPage("./LoginWith2fa", new { ReturnUrl = returnUrl, RememberMe = Input.RememberMe });
+                    }
+                    if (result.IsLockedOut)
+                    {
+                        _logger.LogWarning("User account locked out.");
+                        return RedirectToPage("./Lockout");
+                    }
+                    else
+                    {
+                        ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                        return Page();
+                    }
                 }
-                if (result.RequiresTwoFactor)
+                catch (Exception ex)
                 {
-                    return RedirectToPage("./LoginWith2fa", new { ReturnUrl = returnUrl, RememberMe = Input.RememberMe });
-                }
-                if (result.IsLockedOut)
-                {
-                    _logger.LogWarning("User account locked out.");
-                    return RedirectToPage("./Lockout");
-                }
-                else
-                {
-                    ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                    // Log the full exception chain so we can see the real PostgreSQL error message
+                    var inner = ex;
+                    while (inner != null)
+                    {
+                        _logger.LogError("Login DB error [{Type}]: {Message}", inner.GetType().Name, inner.Message);
+                        inner = inner.InnerException;
+                    }
+
+                    ModelState.AddModelError(string.Empty, "The database is temporarily unavailable. Please try again in a moment.");
                     return Page();
                 }
             }
@@ -144,5 +160,6 @@ namespace ScheduleCentral.Areas.Identity.Pages.Account
             // If we got this far, something failed, redisplay form
             return Page();
         }
+
     }
 }

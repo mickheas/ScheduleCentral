@@ -1,0 +1,83 @@
+@if (Context.Items["IsDemo"] as bool? ?? false)
+{
+    var activeRole = Context.Session.GetString("DemoRole") ?? "Student";
+
+    var roleInfo = activeRole switch
+    {
+        "Admin" => new { Name = "Demo Admin", RoleName = "Administrator" },
+        "ProgramOfficer" => new { Name = "Demo Program Officer", RoleName = "Program Officer" },
+        "Department" => new { Name = "Demo Department Head", RoleName = "Department Head" },
+        "Instructor" => new { Name = "Dr. Alice Smith", RoleName = "Instructor" },
+        "TopManagement" => new { Name = "Demo Top Management", RoleName = "Top Management" },
+        _ => new { Name = "Demo Student", RoleName = "Student" }
+    };
+
+    <style>
+        .demo-warning-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: linear-gradient(90deg, #d97706 0%, #b45309 100%);
+            color: #ffffff;
+            z-index: 1060;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.25rem;
+            font-size: 0.85rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        body {
+            padding-top: 96px !important; /* Adjust body padding top to clear the 40px banner + 56px navbar */
+        }
+        .navbar {
+            top: 40px !important; /* Push production navbar down below the banner */
+        }
+        #sidebar {
+            top: 96px !important; /* Push production sidebar down below the navbar */
+        }
+    </style>
+
+    <div class="demo-warning-banner">
+        <div class="d-flex align-items-center gap-2">
+            <span class="spinner-grow spinner-grow-sm text-light" style="width: 0.75rem; height: 0.75rem;" role="status"></span>
+            <strong>Demo Mode:</strong>
+            <span>You are previewing as <strong class="text-warning">@roleInfo.RoleName</strong>. Session data is fully isolated from production database.</span>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            
+            <!-- Quick Role Switcher -->
+            <div class="dropdown me-2">
+                <button class="btn btn-xs btn-outline-light dropdown-toggle font-semibold py-0.5 px-2" type="button" id="demoRoleSwitcher" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.75rem;">
+                    Switch Role: @activeRole
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-1" aria-labelledby="demoRoleSwitcher" style="min-width: 180px;">
+                    <li><a class="dropdown-item py-1 px-2.5 rounded small" href="/Demo/SwitchRole?role=Admin">System Admin</a></li>
+                    <li><a class="dropdown-item py-1 px-2.5 rounded small" href="/Demo/SwitchRole?role=ProgramOfficer">Program Officer</a></li>
+                    <li><a class="dropdown-item py-1 px-2.5 rounded small" href="/Demo/SwitchRole?role=Department">Department Head</a></li>
+                    <li><a class="dropdown-item py-1 px-2.5 rounded small" href="/Demo/SwitchRole?role=Instructor">Instructor</a></li>
+                    <li><a class="dropdown-item py-1 px-2.5 rounded small" href="/Demo/SwitchRole?role=TopManagement">Top Management</a></li>
+                    <li><a class="dropdown-item py-1 px-2.5 rounded small" href="/Demo/SwitchRole?role=Student">Student</a></li>
+                </ul>
+            </div>
+
+            <!-- Reset database button -->
+            <form action="/Demo/Reset" method="post" class="m-0">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-xs btn-outline-light py-0.5 px-2 font-semibold" style="font-size:0.75rem;">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset State
+                </button>
+            </form>
+            
+            <!-- Exit button -->
+            <form action="/Demo/Exit" method="post" class="m-0">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-xs btn-light text-warning py-0.5 px-2 font-bold" style="font-size:0.75rem; background-color:#ffffff; color:#b45309;">
+                    <i class="bi bi-box-arrow-left"></i> Exit Demo
+                </button>
+            </form>
+        </div>
+    </div>
+}

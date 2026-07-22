@@ -1,4 +1,4 @@
-@using Microsoft.AspNetCore.Identity
+﻿@using Microsoft.AspNetCore.Identity
 @using ScheduleCentral.Models
 @using ScheduleCentral.Services
 @inject SignInManager<ApplicationUser> SignInManager
@@ -30,7 +30,7 @@
 <!-- Initial theme set here, managed by JS -->
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=1200, initial-scale=0.35, maximum-scale=2.0" />
     <title>@ViewData["Title"] Class Schedule Management </title>
 
     <!-- Bootstrap 5 CSS -->
@@ -360,6 +360,50 @@
     </style>
 </head>
 <body>
+        <div id="mobile-desktop-warning" class="mobile-warning-overlay" style="display: none;">
+            <div class="warning-card">
+                <div class="warning-icon"><i class="bi bi-laptop"></i></div>
+                <h4 class="fw-bold mb-2">Desktop Recommended</h4>
+                <p class="text-muted small mb-3">CSMS Schedule Central is optimized for desktop screens to properly view full timetable matrices and planning boards.</p>
+                <button type="button" id="btnDismissMobileWarning" class="btn btn-primary btn-sm w-100">Continue Anyway</button>
+            </div>
+        </div>
+
+        <script>
+            (function () {
+                function checkDevice() {
+                    // Check User-Agent & hardware screen width (ignores width=1200 meta tag override)
+                    const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                    const isSmallScreen = window.screen.width < 992 || window.innerWidth < 992;
+                    const wasDismissed = sessionStorage.getItem('dismissedMobileWarning');
+
+                    if ((isMobileUA || isSmallScreen) && !wasDismissed) {
+                        const overlay = document.getElementById('mobile-desktop-warning');
+                        if (overlay) {
+                            overlay.style.display = 'flex';
+                        }
+                    }
+                }
+
+                // Run execution immediately or on DOM ready
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', checkDevice);
+                } else {
+                    checkDevice();
+                }
+
+                // Event listener for dismissal button
+                document.addEventListener('click', function (e) {
+                    if (e.target && e.target.id === 'btnDismissMobileWarning') {
+                        const overlay = document.getElementById('mobile-desktop-warning');
+                        if (overlay) overlay.style.display = 'none';
+                        sessionStorage.setItem('dismissedMobileWarning', 'true');
+                    }
+                });
+            })();
+        </script>
+
+
     <partial name="_DemoBanner" />
 
     @if (!hideNav)

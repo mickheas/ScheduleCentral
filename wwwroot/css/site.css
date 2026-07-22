@@ -20,3 +20,55 @@ html {
 body {
   margin-bottom: 0;
 }
+/* Mobile Warning Overlay */
+.mobile-warning-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(6px);
+    z-index: 999999; /* Higher than any navbar or sticky grid elements */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    box-sizing: border-box;
+}
+
+/* Scaled up for the forced 1200px viewport */
+.warning-card {
+    background: #ffffff;
+    color: #1e293b;
+    padding: 3.5rem 3rem;
+    border-radius: 1.5rem;
+    text-align: center;
+    width: 85%;
+    max-width: 950px; /* Takes up most of the 1200px viewport so it's readable when zoomed out */
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.warning-card .warning-icon {
+    font-size: 6rem;
+    margin-bottom: 1rem;
+}
+
+.warning-card h4 {
+    font-size: 2.75rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.warning-card p {
+    font-size: 1.6rem;
+    line-height: 1.6;
+    color: #64748b;
+    margin-bottom: 2rem;
+}
+
+.warning-card .btn {
+    font-size: 1.5rem;
+    padding: 1.25rem 2rem;
+    border-radius: 0.75rem;
+}
